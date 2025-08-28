@@ -11,14 +11,6 @@ function App() {
   const dispatch = useDispatch();
   const { isAuthenticated  , loading } = useSelector((state) => state.auth);
 
-
-  const navigate = useNavigate();
-  useEffect(() => {
-    if (isAuthenticated) {
-      navigate("/");
-    }
-  }, [isAuthenticated, navigate]);
-
   useEffect(() => {
     // User is authenticated, you can dispatch any actions or perform any logic here
     dispatch(checkAuth());
