@@ -16,6 +16,7 @@ const HomePage = () => {
     tags: "all",
   });
 
+  // Get user information from Redux store
   const { user } = useSelector((state) => state.auth);
 
   const handleLogout = async () => {
@@ -31,23 +32,40 @@ const HomePage = () => {
       navigate("/login");
     }
   };
-
-  // Dummy data for problems for the demo
   useEffect(() => {
-    // Simulate fetching problems with more diverse tags
-    const dummyProblems = [
-      { id: 1, title: "Two Sum", difficulty: "Easy", status: "Solved", tags: ["Array", "Hash Table"] },
-      { id: 2, title: "Longest Substring Without Repeating Characters", difficulty: "Medium", status: "Attempted", tags: ["String", "Sliding Window"] },
-      { id: 3, title: "Median of Two Sorted Arrays", difficulty: "Hard", status: "Unsolved", tags: ["Array", "Divide and Conquer"] },
-      { id: 4, title: "Container With Most Water", difficulty: "Medium", status: "Solved", tags: ["Array", "Two Pointers"] },
-      { id: 5, title: "Valid Parentheses", difficulty: "Easy", status: "Unsolved", tags: ["String", "Stack"] },
-      { id: 6, title: "Merge Two Sorted Lists", difficulty: "Easy", status: "Solved", tags: ["Linked List", "Recursion"] },
-      { id: 7, title: "Longest Palindromic Substring", difficulty: "Medium", status: "Unsolved", tags: ["String", "Dynamic Programming"] },
-      { id: 8, title: "Two Sum II - Input Array Is Sorted", difficulty: "Easy", status: "Solved", tags: ["Array", "Two Pointers"] },
-    ];
-    setProblems(dummyProblems);
-    setSolvedProblems(dummyProblems.filter(p => p.status === "Solved"));
-  }, []);
+    // // Simulate fetching problems with more diverse tags
+    // const dummyProblems = [
+    //   { id: 1, title: "Two Sum", difficulty: "Easy", status: "Solved", tags: ["Array", "Hash Table"] },
+    //   { id: 2, title: "Longest Substring Without Repeating Characters", difficulty: "Medium", status: "Attempted", tags: ["String", "Sliding Window"] },
+    //   { id: 3, title: "Median of Two Sorted Arrays", difficulty: "Hard", status: "Unsolved", tags: ["Array", "Divide and Conquer"] },
+    //   { id: 4, title: "Container With Most Water", difficulty: "Medium", status: "Solved", tags: ["Array", "Two Pointers"] },
+    //   { id: 5, title: "Valid Parentheses", difficulty: "Easy", status: "Unsolved", tags: ["String", "Stack"] },
+    //   { id: 6, title: "Merge Two Sorted Lists", difficulty: "Easy", status: "Solved", tags: ["Linked List", "Recursion"] },
+    //   { id: 7, title: "Longest Palindromic Substring", difficulty: "Medium", status: "Unsolved", tags: ["String", "Dynamic Programming"] },
+    //   { id: 8, title: "Two Sum II - Input Array Is Sorted", difficulty: "Easy", status: "Solved", tags: ["Array", "Two Pointers"] },
+    // ];
+    const fetchProblems = async () => {
+      try {
+        const {data} = await axiosClient.get("/problem/getAllProblems");
+        setProblems(data.problems);
+        setSolvedProblems(data?.problems.filter(p => p.status === "Solved"));
+        console.log(setSolvedProblems);
+      } catch (error) {
+        console.error("Error fetching problems:", error);
+      }
+    };
+    const fetchSolvedProblems = async () => {
+      try {
+        const {data} = await axiosClient.get("/problem/problemSolvedByUser");
+        setSolvedProblems(data.problemSolved);
+      } catch (error) {
+        console.error("Error fetching solved problems:", error);
+      }
+    };
+
+    fetchProblems();
+    if (user) fetchSolvedProblems();
+  }, [user]);
 
   // --- Filtering Logic ---
   const handleFilterChange = (e) => {
@@ -58,7 +76,7 @@ const HomePage = () => {
     }));
   };
 
-  const filteredProblems = problems.filter(problem => {
+  const filteredProblems = (problems || []).filter(problem => {
     // Filter by difficulty
     if (filters.difficulty !== "all" && problem.difficulty !== filters.difficulty) {
       return false;
@@ -74,6 +92,9 @@ const HomePage = () => {
     return true;
   });
   // --- End Filtering Logic ---
+
+  console.log(solvedProblems);
+  // console.log(filteredProblems);
 
   return (
     <div
@@ -164,7 +185,7 @@ const HomePage = () => {
         </svg>
       </div>
 
-
+          
       <div className="absolute inset-0 bg-gradient-to-br from-base-300/80 to-base-900/90 backdrop-blur-sm"></div>
 
       <div className="navbar bg-base-100 shadow-xl px-6 relative z-20 animate-fade-in-down">
@@ -256,7 +277,7 @@ const HomePage = () => {
           <div className="card shadow-xl bg-base-100 text-base-content animate-pop-in delay-100">
             <div className="card-body">
               <h2 className="card-title text-3xl font-bold">Total Problems</h2>
-              <p className="text-6xl font-extrabold mt-4">{problems.length}</p>
+              <p className="text-6xl font-extrabold mt-4">{problems?.length}</p>
               <div className="card-actions justify-end mt-4">
                 <button className="btn btn-primary btn-outline">Explore</button>
               </div>
@@ -335,14 +356,27 @@ const HomePage = () => {
                   <th>Tags</th> {/* Added Tags column */}
                   <th>Action</th>
                 </tr>
+
               </thead>
               <tbody>
                 {filteredProblems.length > 0 ? (
                   filteredProblems.map(problem => (
-                    <tr key={problem.id} className="hover:bg-base-200 transition-colors duration-200">
+                    <tr key={problem._id || problem.id || index} className="hover:bg-base-200 transition-colors duration-200">
                       <td className="font-medium">{problem.title}</td>
-                      <td><span className={`badge ${problem.difficulty === "Easy" ? "badge-success" : problem.difficulty === "Medium" ? "badge-warning" : "badge-error"}`}>{problem.difficulty}</span></td>
-                      <td><span className={`badge ${problem.status === "Solved" ? "badge-info" : problem.status === "Attempted" ? "badge-warning" : "badge-ghost"}`}>{problem.status}</span></td>
+                      <td><span className={`badge ${problem.difficulty === "easy" ? "badge-success" : problem.difficulty === "medium" ? "badge-warning" : "badge-error"}`}>{problem.difficulty}</span></td>
+                        <td>
+                          <span
+                            className={`badge ${
+                              solvedProblems?.some(p => p._id === problem._id)
+                                ? "badge-info"
+                                : "badge-ghost"
+                            }`}
+                          >
+                            {solvedProblems?.some(p => p._id === problem._id)
+                              ? "Solved"
+                              : "Unsolved"}
+                          </span>
+                        </td>
                       <td>
                         <div className="flex flex-wrap gap-1">
                           {problem.tags && problem.tags.map(tag => (
