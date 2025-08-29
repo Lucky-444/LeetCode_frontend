@@ -29,7 +29,7 @@ export const checkAuth = createAsyncThunk(
   'auth/checkAuth',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await axiosClient.get('/users/checkAuth')
+      const response = await axiosClient.get('/users/checkAuth' ,{ withCredentials: true })
       return response.data.user
     } catch (error) {
       return rejectWithValue(error.response.data)
@@ -54,7 +54,7 @@ const authSlice = createSlice({
   initialState: {
     user: null,
     isAuthenticated: false,
-    loading: false,
+    loading: true,
     error: null,
   },
   reducers: {

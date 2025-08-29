@@ -76,6 +76,11 @@ const HomePage = () => {
     }));
   };
 
+  const handleViewProblem = (problem) => {
+    // Navigate to the problem detail page
+    navigate(`/problem/${problem._id}`);
+  };
+
   const filteredProblems = (problems || []).filter(problem => {
     // Filter by difficulty
     if (filters.difficulty !== "all" && problem.difficulty !== filters.difficulty) {
@@ -389,7 +394,12 @@ const HomePage = () => {
                         </div>
                       </td>
                       <td>
-                        <button className="btn btn-ghost btn-sm btn-primary">View</button>
+                        <button 
+                        className="btn btn-ghost btn-sm btn-primary"
+                        onClick={() => handleViewProblem(problem)}
+                        >
+                          View
+                        </button>
                       </td>
                     </tr>
                   ))

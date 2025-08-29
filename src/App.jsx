@@ -5,11 +5,18 @@ import Signup from "./pages/Signup";
 import { checkAuth } from "./authSlice";
 import { useDispatch, useSelector } from "react-redux";
 import { useEffect } from "react";
+import AdminPage from "./pages/AdminPage";
 
 function App() {
   // code for the user is authenticated  
   const dispatch = useDispatch();
-  const { isAuthenticated  , loading } = useSelector((state) => state.auth);
+  const { isAuthenticated  , loading  , user } = useSelector((state) => state.auth);
+
+  console.log("isAuthenticated:", isAuthenticated);
+  console.log("user:", user);
+  const isAdmin = user?.role === "admin";
+
+  console.log("isAdmin:", isAdmin);
 
   useEffect(() => {
     // User is authenticated, you can dispatch any actions or perform any logic here
@@ -18,7 +25,7 @@ function App() {
   }, [dispatch]);
 
 
-  if (loading) {
+  if (loading && !isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <div className="flex flex-col items-center gap-3">
@@ -60,9 +67,9 @@ function App() {
       <Routes>
         <Route path="/" element={ isAuthenticated ? <HomePage /> : <Navigate to="/signup" />} />
         <Route path="/login" element={ isAuthenticated ? <Navigate to="/" /> : <Login />} />
-        {/* <Route path="/register" element={<Register />} />
-        <Route path="/dashboard" element={<Dashboard />} /> */}
         <Route path="/signup" element={ isAuthenticated ? <Navigate to="/" /> : <Signup />} />
+        <Route         path="/admin"
+        element={isAuthenticated && isAdmin ? <AdminPage /> : <Navigate to="/" />}/>
       </Routes>
     </>
   );
