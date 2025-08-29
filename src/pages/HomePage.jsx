@@ -48,8 +48,8 @@ const HomePage = () => {
       try {
         const {data} = await axiosClient.get("/problem/getAllProblems");
         setProblems(data.problems);
-        setSolvedProblems(data?.problems.filter(p => p.status === "Solved"));
-        console.log(setSolvedProblems);
+        // setSolvedProblems(data?.problems.filter(p => p.status === "Solved"));
+        // console.log(setSolvedProblems);
       } catch (error) {
         console.error("Error fetching problems:", error);
       }
@@ -81,8 +81,12 @@ const HomePage = () => {
     if (filters.difficulty !== "all" && problem.difficulty !== filters.difficulty) {
       return false;
     }
+    // Derive status
+    const isSolved = solvedProblems?.some(p => p._id === problem._id);
+    const problemStatus = isSolved ? "solved" : "unsolved";
+
     // Filter by status
-    if (filters.status !== "all" && problem.status !== filters.status) {
+    if (filters.status !== "all" && problemStatus !== filters.status) {
       return false;
     }
     // Filter by tags (simplified for demo, checks if ANY tag matches)
@@ -93,7 +97,7 @@ const HomePage = () => {
   });
   // --- End Filtering Logic ---
 
-  console.log(solvedProblems);
+  
   // console.log(filteredProblems);
 
   return (
@@ -307,9 +311,9 @@ const HomePage = () => {
               className="select select-bordered w-full max-w-xs bg-base-200 text-base-content"
             >
               <option value="all">All Difficulties</option>
-              <option value="Easy">Easy</option>
-              <option value="Medium">Medium</option>
-              <option value="Hard">Hard</option>
+              <option value="easy">Easy</option>
+              <option value="medium">Medium</option>
+              <option value="hard">Hard</option>
             </select>
 
             {/* Status Filter */}
@@ -320,11 +324,11 @@ const HomePage = () => {
               className="select select-bordered w-full max-w-xs bg-base-200 text-base-content"
             >
               <option value="all">All Statuses</option>
-              <option value="Solved">Solved</option>
-              <option value="Attempted">Attempted</option>
-              <option value="Unsolved">Unsolved</option>
+              <option value="solved">Solved</option>
+              <option value="attempted">Attempted</option>
+              <option value="unsolved">Unsolved</option>
             </select>
-
+              
             {/* Tags Filter (using dummy tags for now) */}
             <select
               name="tags"
