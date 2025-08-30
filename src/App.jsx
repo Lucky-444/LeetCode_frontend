@@ -6,6 +6,7 @@ import { checkAuth } from "./authSlice";
 import { useDispatch, useSelector } from "react-redux";
 import { useEffect } from "react";
 import AdminPage from "./pages/AdminPage";
+import ProblemPage from "./pages/ProblemPage";
 
 function App() {
   // code for the user is authenticated  
@@ -70,6 +71,7 @@ function App() {
         <Route path="/signup" element={ isAuthenticated ? <Navigate to="/" /> : <Signup />} />
         <Route         path="/admin"
         element={isAuthenticated && isAdmin ? <AdminPage /> : <Navigate to="/" />}/>
+        <Route path="/problem/:id" element={isAuthenticated ? <ProblemPage /> : <Navigate to="/login" />} />
       </Routes>
     </>
   );
