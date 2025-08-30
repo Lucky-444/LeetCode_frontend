@@ -46,7 +46,7 @@ const HomePage = () => {
     // ];
     const fetchProblems = async () => {
       try {
-        const {data} = await axiosClient.get("/problem/getAllProblems");
+        const { data } = await axiosClient.get("/problem/getAllProblems");
         setProblems(data.problems);
         // setSolvedProblems(data?.problems.filter(p => p.status === "Solved"));
         // console.log(setSolvedProblems);
@@ -56,7 +56,7 @@ const HomePage = () => {
     };
     const fetchSolvedProblems = async () => {
       try {
-        const {data} = await axiosClient.get("/problem/problemSolvedByUser");
+        const { data } = await axiosClient.get("/problem/problemSolvedByUser");
         setSolvedProblems(data.problemSolved);
       } catch (error) {
         console.error("Error fetching solved problems:", error);
@@ -70,7 +70,7 @@ const HomePage = () => {
   // --- Filtering Logic ---
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
-    setFilters(prevFilters => ({
+    setFilters((prevFilters) => ({
       ...prevFilters,
       [name]: value,
     }));
@@ -81,13 +81,16 @@ const HomePage = () => {
     navigate(`/problem/${problem._id}`);
   };
 
-  const filteredProblems = (problems || []).filter(problem => {
+  const filteredProblems = (problems || []).filter((problem) => {
     // Filter by difficulty
-    if (filters.difficulty !== "all" && problem.difficulty !== filters.difficulty) {
+    if (
+      filters.difficulty !== "all" &&
+      problem.difficulty !== filters.difficulty
+    ) {
       return false;
     }
     // Derive status
-    const isSolved = solvedProblems?.some(p => p._id === problem._id);
+    const isSolved = solvedProblems?.some((p) => p._id === problem._id);
     const problemStatus = isSolved ? "solved" : "unsolved";
 
     // Filter by status
@@ -102,12 +105,11 @@ const HomePage = () => {
   });
   // --- End Filtering Logic ---
 
-  
   // console.log(filteredProblems);
 
   return (
     <div
-      className="min-h-screen bg-base-200 relative flex flex-col font-sans"
+      className="min-h-screen bg-base-200  relative flex flex-col font-sans"
       style={{
         backgroundImage:
           "url('/Generated Image August 29, 2025 - 4_41PM.jpeg')",
@@ -117,7 +119,10 @@ const HomePage = () => {
       }}
     >
       {/* Spider-like SVG Overlay for the background */}
-      <div className="absolute inset-0 z-0 opacity-20" style={{ pointerEvents: 'none' }}>
+      <div
+        className="absolute inset-0 z-0 opacity-20"
+        style={{ pointerEvents: "none" }}
+      >
         <svg
           width="100%"
           height="100%"
@@ -126,12 +131,22 @@ const HomePage = () => {
           xmlns="http://www.w3.org/2000/svg"
         >
           <defs>
-            <linearGradient id="spiderGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <linearGradient
+              id="spiderGradient"
+              x1="0%"
+              y1="0%"
+              x2="100%"
+              y2="100%"
+            >
               <stop offset="0%" stopColor="#8B5CF6" /> {/* Purple */}
               <stop offset="100%" stopColor="#EC4899" /> {/* Pink */}
             </linearGradient>
             <filter id="glow">
-              <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur" />
+              <feGaussianBlur
+                in="SourceGraphic"
+                stdDeviation="10"
+                result="blur"
+              />
               <feMerge>
                 <feMergeNode in="blur" />
                 <feMergeNode in="SourceGraphic" />
@@ -151,7 +166,7 @@ const HomePage = () => {
 
           {/* Legs radiating outwards */}
           {Array.from({ length: 8 }).map((_, i) => {
-            const angle = (i * 45) * Math.PI / 180; // 8 legs, 45 degrees apart
+            const angle = (i * 45 * Math.PI) / 180; // 8 legs, 45 degrees apart
             const startX = 500 + Math.cos(angle) * 100;
             const startY = 500 + Math.sin(angle) * 100;
             const control1X = 500 + Math.cos(angle) * 250;
@@ -173,8 +188,8 @@ const HomePage = () => {
 
           {/* Web-like connecting lines (simplified for example) */}
           {Array.from({ length: 12 }).map((_, i) => {
-            const angle1 = (i * 30) * Math.PI / 180;
-            const angle2 = ((i + 1) * 30) * Math.PI / 180;
+            const angle1 = (i * 30 * Math.PI) / 180;
+            const angle2 = ((i + 1) * 30 * Math.PI) / 180;
             const x1 = 500 + Math.cos(angle1) * 200;
             const y1 = 500 + Math.sin(angle1) * 200;
             const x2 = 500 + Math.cos(angle2) * 200;
@@ -186,15 +201,30 @@ const HomePage = () => {
             const y4 = 500 + Math.sin(angle2) * 350;
             return (
               <g key={`web-${i}`}>
-                <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="url(#spiderGradient)" strokeWidth="1" opacity="0.6" />
-                <line x1={x3} y1={y3} x2={x4} y2={y4} stroke="url(#spiderGradient)" strokeWidth="1" opacity="0.4" />
+                <line
+                  x1={x1}
+                  y1={y1}
+                  x2={x2}
+                  y2={y2}
+                  stroke="url(#spiderGradient)"
+                  strokeWidth="1"
+                  opacity="0.6"
+                />
+                <line
+                  x1={x3}
+                  y1={y3}
+                  x2={x4}
+                  y2={y4}
+                  stroke="url(#spiderGradient)"
+                  strokeWidth="1"
+                  opacity="0.4"
+                />
               </g>
             );
           })}
         </svg>
       </div>
 
-          
       <div className="absolute inset-0 bg-gradient-to-br from-base-300/80 to-base-900/90 backdrop-blur-sm"></div>
 
       <div className="navbar bg-base-100 shadow-xl px-6 relative z-20 animate-fade-in-down">
@@ -213,7 +243,9 @@ const HomePage = () => {
             >
               <div className="w-10 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
                 <img
-                  src={user?.image || "https://robohash.org/default.png?set=set4"}
+                  src={
+                    user?.image || "https://robohash.org/default.png?set=set4"
+                  }
                   alt="User Avatar"
                   className="object-cover"
                 />
@@ -227,7 +259,9 @@ const HomePage = () => {
               <li>
                 <span className="justify-between font-semibold text-lg text-primary-content">
                   {user?.firstName || "Guest"}
-                  <span className="badge badge-primary badge-outline text-xs">Pro</span>
+                  <span className="badge badge-primary badge-outline text-xs">
+                    Pro
+                  </span>
                 </span>
               </li>
               <li>
@@ -261,21 +295,28 @@ const HomePage = () => {
 
       <div className="p-8 relative z-10 flex-grow container mx-auto">
         <h1 className="text-5xl font-extrabold text-white mb-4 animate-fade-in-left">
-          Welcome, <span className="text-primary-content">{user?.firstName || "User"}</span>! 👋
+          Welcome,{" "}
+          <span className="text-primary-content">
+            {user?.firstName || "User"}
+          </span>
+          ! 👋
         </h1>
         <p className="mt-2 text-xl text-white/90 max-w-2xl animate-fade-in-right">
-          Your personalized dashboard for conquering coding challenges. Let's solve some problems!
+          Your personalized dashboard for conquering coding challenges. Let's
+          solve some problems!
         </p>
 
         <div className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           <div className="card shadow-xl bg-gradient-to-br from-primary to-secondary text-primary-content animate-pop-in">
             <div className="card-body">
               <h2 className="card-title text-3xl font-bold">Solved Problems</h2>
-              <p className="text-6xl font-extrabold mt-4">{solvedProblems.length}</p>
+              <p className="text-6xl font-extrabold mt-4">
+                {solvedProblems.length}
+              </p>
               <div className="card-actions justify-end mt-4">
                 <button
                   className="btn btn-primary text-primary-content shadow-lg hover:shadow-xl transition-shadow duration-300"
-                  onClick={() => navigate('/problems?status=solved')}
+                  onClick={() => navigate("/problems?status=solved")}
                 >
                   View All
                 </button>
@@ -298,7 +339,9 @@ const HomePage = () => {
               <h2 className="card-title text-3xl font-bold">Daily Challenge</h2>
               <p className="text-xl mt-4">"Implement an LRU Cache"</p>
               <div className="card-actions justify-end mt-4">
-                <button className="btn btn-accent btn-outline">Start Now</button>
+                <button className="btn btn-accent btn-outline">
+                  Start Now
+                </button>
               </div>
             </div>
           </div>
@@ -333,7 +376,7 @@ const HomePage = () => {
               <option value="attempted">Attempted</option>
               <option value="unsolved">Unsolved</option>
             </select>
-              
+
             {/* Tags Filter (using dummy tags for now) */}
             <select
               name="tags"
@@ -365,38 +408,58 @@ const HomePage = () => {
                   <th>Tags</th> {/* Added Tags column */}
                   <th>Action</th>
                 </tr>
-
               </thead>
               <tbody>
                 {filteredProblems.length > 0 ? (
-                  filteredProblems.map(problem => (
-                    <tr key={problem._id || problem.id || index} className="hover:bg-base-200 transition-colors duration-200">
+                  filteredProblems.map((problem) => (
+                    <tr
+                      key={problem._id || problem.id || index}
+                      className="hover:bg-base-200 transition-colors duration-200"
+                    >
                       <td className="font-medium">{problem.title}</td>
-                      <td><span className={`badge ${problem.difficulty === "easy" ? "badge-success" : problem.difficulty === "medium" ? "badge-warning" : "badge-error"}`}>{problem.difficulty}</span></td>
-                        <td>
-                          <span
-                            className={`badge ${
-                              solvedProblems?.some(p => p._id === problem._id)
-                                ? "badge-info"
-                                : "badge-ghost"
-                            }`}
-                          >
-                            {solvedProblems?.some(p => p._id === problem._id)
-                              ? "Solved"
-                              : "Unsolved"}
-                          </span>
-                        </td>
+                      <td>
+                        <span
+                          className={`badge ${
+                            problem.difficulty === "easy"
+                              ? "badge-success"
+                              : problem.difficulty === "medium"
+                              ? "badge-warning"
+                              : "badge-error"
+                          }`}
+                        >
+                          {problem.difficulty}
+                        </span>
+                      </td>
+                      <td>
+                        <span
+                          className={`badge ${
+                            solvedProblems?.some((p) => p._id === problem._id)
+                              ? "badge-info"
+                              : "badge-ghost"
+                          }`}
+                        >
+                          {solvedProblems?.some((p) => p._id === problem._id)
+                            ? "Solved"
+                            : "Unsolved"}
+                        </span>
+                      </td>
                       <td>
                         <div className="flex flex-wrap gap-1">
-                          {problem.tags && problem.tags.map(tag => (
-                            <span key={tag} className="badge badge-outline badge-sm">{tag}</span>
-                          ))}
+                          {problem.tags &&
+                            problem.tags.map((tag) => (
+                              <span
+                                key={tag}
+                                className="badge badge-outline badge-sm"
+                              >
+                                {tag}
+                              </span>
+                            ))}
                         </div>
                       </td>
                       <td>
-                        <button 
-                        className="btn btn-ghost btn-sm btn-primary"
-                        onClick={() => handleViewProblem(problem)}
+                        <button
+                          className="btn btn-ghost btn-sm btn-primary"
+                          onClick={() => handleViewProblem(problem)}
                         >
                           View
                         </button>
@@ -405,7 +468,10 @@ const HomePage = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="5" className="text-center py-4 text-xl text-info">
+                    <td
+                      colSpan="5"
+                      className="text-center py-4 text-xl text-info"
+                    >
                       No problems found matching your filters.
                     </td>
                   </tr>

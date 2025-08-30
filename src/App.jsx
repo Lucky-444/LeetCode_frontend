@@ -9,9 +9,9 @@ import AdminPage from "./pages/AdminPage";
 import ProblemPage from "./pages/ProblemPage";
 
 function App() {
-  // code for the user is authenticated  
+  // code for the user is authenticated
   const dispatch = useDispatch();
-  const { isAuthenticated  , loading  , user } = useSelector((state) => state.auth);
+  const { isAuthenticated, loading, user } = useSelector((state) => state.auth);
 
   console.log("isAuthenticated:", isAuthenticated);
   console.log("user:", user);
@@ -22,9 +22,7 @@ function App() {
   useEffect(() => {
     // User is authenticated, you can dispatch any actions or perform any logic here
     dispatch(checkAuth());
-    
   }, [dispatch]);
-
 
   if (loading && !isAuthenticated) {
     return (
@@ -61,17 +59,31 @@ function App() {
     );
   }
 
-
-
   return (
     <>
       <Routes>
-        <Route path="/" element={ isAuthenticated ? <HomePage /> : <Navigate to="/signup" />} />
-        <Route path="/login" element={ isAuthenticated ? <Navigate to="/" /> : <Login />} />
-        <Route path="/signup" element={ isAuthenticated ? <Navigate to="/" /> : <Signup />} />
-        <Route         path="/admin"
-        element={isAuthenticated && isAdmin ? <AdminPage /> : <Navigate to="/" />}/>
-        <Route path="/problem/:id" element={isAuthenticated ? <ProblemPage /> : <Navigate to="/login" />} />
+        <Route
+          path="/"
+          element={isAuthenticated ? <HomePage /> : <Navigate to="/signup" />}
+        />
+        <Route
+          path="/login"
+          element={isAuthenticated ? <Navigate to="/" /> : <Login />}
+        />
+        <Route
+          path="/signup"
+          element={isAuthenticated ? <Navigate to="/" /> : <Signup />}
+        />
+        <Route
+          path="/admin"
+          element={
+            isAuthenticated && isAdmin ? <AdminPage /> : <Navigate to="/" />
+          }
+        />
+        <Route
+          path="/problem/:id"
+          element={isAuthenticated ? <ProblemPage /> : <Navigate to="/login" />}
+        />
       </Routes>
     </>
   );

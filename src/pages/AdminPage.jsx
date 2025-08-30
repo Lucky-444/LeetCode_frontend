@@ -2,8 +2,10 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { problemSchema } from "../utils/problemSchema"; // your zod schema file
 import { z } from "zod";
+import { useNavigate } from "react-router";
 
 const AdminPage = () => {
+  const navigate = useNavigate();
   const {
     register,
     control,
@@ -56,8 +58,20 @@ const AdminPage = () => {
   };
 
   return (
-    <div className="p-6">
+    <div
+      className="min-h-screen p-6 font-sans"
+      style={{
+        backgroundImage:
+          "url('/Generated Image August 29, 2025 - 4_41PM.jpeg')",
+        backgroundRepeat: "no-repeat",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}
+    >
       <h1 className="text-2xl font-bold mb-4">Add New Problems</h1>
+      <button className="btn btn-primary mb-4" onClick={() => navigate("/")}>
+        Back To Homepage
+      </button>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Title */}
         <div>
@@ -70,6 +84,32 @@ const AdminPage = () => {
             <p className="text-red-500">{errors.title.message}</p>
           )}
         </div>
+                {/* Description */}
+        <div>
+          <label className="block text-lg font-semibold">Description</label>
+          <textarea
+            {...register("description")}
+            className="w-full p-2 rounded bg-gray-800 border border-gray-700"
+            placeholder="Enter description"
+          />
+          {errors.description && (
+            <p className="text-red-400">{errors.description.message}</p>
+          )}
+        </div>
+
+        {/* Difficulty */}
+        <div>
+          <label className="block text-lg font-semibold">Difficulty</label>
+          <select
+            {...register("difficulty")}
+            className="w-full p-2 rounded bg-gray-800 border border-gray-700"
+          >
+            <option value="easy">Easy</option>
+            <option value="medium">Medium</option>
+            <option value="hard">Hard</option>
+          </select>
+        </div>
+
 
         {/* Visible Test Cases */}
         <div className="p-4 border rounded bg-gray-800 text-white">
@@ -146,12 +186,12 @@ const AdminPage = () => {
         {/* Starter Code */}
         <div>
           <h2 className="text-xl font-bold">Starter Code</h2>
-          {["cpp", "java", "python"].map((lang, idx) => (
+          {["cpp", "java", "python" , "javascript"].map((lang, idx) => (
             <div key={lang} className="mt-2">
               <label className="block">{lang.toUpperCase()}</label>
               <textarea
                 {...register(`starterCode.${idx}.initialCode`)}
-                className="w-full p-2 rounded bg-gray-800 border border-gray-700"
+                className="w-full h-70 p-2 rounded bg-gray-800 border border-gray-700"
                 placeholder={`Starter code for ${lang}`}
               />
             </div>
@@ -166,7 +206,7 @@ const AdminPage = () => {
               <label className="block">{lang.toUpperCase()}</label>
               <textarea
                 {...register(`referenceSolution.${idx}.completeCode`)}
-                className="w-full p-2 rounded bg-gray-800 border border-gray-700"
+                className="w-full h-70 p-2 rounded bg-gray-800 border border-gray-700"
                 placeholder={`Reference solution for ${lang}`}
               />
             </div>
