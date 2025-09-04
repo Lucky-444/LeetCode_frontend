@@ -155,7 +155,7 @@ const ProblemPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-base-200">
+      <div className="min-h-screen flex items-center justify-center bg-base-100">
         <span className="loading loading-spinner loading-lg text-primary"></span>
         <p className="ml-4 text-xl text-base-content">Loading problem...</p>
       </div>
@@ -189,7 +189,7 @@ const ProblemPage = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col text-base-content p-5 font-sans"
+    <div className="min-h-screen flex flex-col text-base-content p-5 font-sans relative"
         style={{
         backgroundImage:
           "url('/Generated Image August 29, 2025 - 4_41PM.jpeg')",
@@ -198,7 +198,10 @@ const ProblemPage = () => {
         backgroundPosition: "center",
       }}
     >
-      <div className="navbar bg-base-100 shadow-xl px-6 mb-3 rounded-box">
+       {/* Add a dark overlay for better readability */}
+  <div className="absolute inset-0 bg-black/50 z-0"></div>
+
+      <div className="navbar bg-base-100/40 shadow-xl px-6 mb-3 rounded-box backdrop-blur">
         <div className="flex-1">
           <button
             onClick={() => navigate("/")}
@@ -219,7 +222,7 @@ const ProblemPage = () => {
       <PanelGroup direction="horizontal" className="flex-grow">
         <Panel defaultSize={50} minSize={30}>
           {/* Left Panel: Problem Description */}
-          <div className="card bg-base-100 shadow-xl p-6 overflow-auto custom-scrollbar h-full">
+          <div className="card bg-base-300/40 shadow-xl p-6 overflow-auto custom-scrollbar h-full">
             <h1 className="text-4xl font-bold mb-4 text-primary-content">
               {problem.title}
             </h1>
@@ -246,7 +249,7 @@ const ProblemPage = () => {
                 ))}
             </div>
 
-            <div className="tabs tabs-boxed mb-4 bg-base-200">
+            <div className="tabs tabs-boxed mb-4 bg-base-200/90">
               <a
                 className={`tab tab-lg ${
                   activeLeftTab === "description" ? "tab-active text-primary" : ""
@@ -289,7 +292,7 @@ const ProblemPage = () => {
                     problem.visibleTestCases.map((ex, index) => (
                       <div
                         key={ex._id || index}
-                        className="bg-base-300 p-4 rounded-md mb-4 shadow-inner"
+                        className="bg-base-200/40 p-4 rounded-md mb-4 shadow-inner"
                       >
                         <p className="font-mono text-lg mb-1">
                           <span className="font-bold text-primary">
@@ -309,7 +312,7 @@ const ProblemPage = () => {
                   <h3 className="text-xl font-semibold mb-2 text-accent">
                     Constraints:
                   </h3>
-                  <ul className="list-disc list-inside bg-base-300 p-4 rounded-md shadow-inner">
+                  <ul className="list-disc list-inside bg-base-200/40 p-4 rounded-md shadow-inner">
                     {problem.constraints && (
                       <>
                         <li>Time Limit: {problem.constraints.timeLimit}</li>
@@ -333,7 +336,7 @@ const ProblemPage = () => {
                   <p className="text-warning">
                     Access to solutions often requires a premium subscription.
                   </p>
-                  <pre className="bg-base-300 p-4 rounded-md overflow-x-auto mt-4 text-primary-content">
+                  <pre className="bg-base-200/40 p-4 rounded-md overflow-x-auto mt-4 text-primary-content">
                     <code>
                       {`function twoSum(nums, target) {
   const map = new Map();
@@ -365,13 +368,13 @@ const ProblemPage = () => {
                     </p>
                   )}
                   <ul className="mt-4">
-                    <li className="bg-base-300 p-3 rounded-md mb-2 flex justify-between items-center">
+                    <li className="bg-base-100/40 p-3 rounded-md mb-2 flex justify-between items-center">
                       <span className="font-mono text-success">Accepted</span>
                       <span className="text-sm text-base-content/70">
                         2 days ago
                       </span>
                     </li>
-                    <li className="bg-base-300 p-3 rounded-md mb-2 flex justify-between items-center">
+                    <li className="bg-base-100/40 p-3 rounded-md mb-2 flex justify-between items-center">
                       <span className="font-mono text-error">
                         Wrong Answer
                       </span>
@@ -386,18 +389,18 @@ const ProblemPage = () => {
           </div>
         </Panel>
 
-        <PanelResizeHandle className="group w-3 bg-base-300 hover:bg-primary-focus cursor-col-resize transition-colors flex items-center justify-center">
-          <div className="w-1 h-12 bg-primary rounded-full group-hover:bg-primary-focus" />
+        <PanelResizeHandle className="group w-3 bg-base-100/40 hover:bg-primary-focus cursor-col-resize transition-colors flex items-center justify-center">
+          <div className="h-full w-1 bg-primary rounded-full group-hover:bg-primary-focus" />
         </PanelResizeHandle>
 
         <Panel defaultSize={50} minSize={30}>
           {/* Right Panel: Code Editor and Output, now split vertically */}
           <PanelGroup direction="vertical">
             <Panel defaultSize={65} minSize={20}> {/* Editor panel */}
-              <div className="card bg-base-100 shadow-xl p-4 flex-grow overflow-hidden flex flex-col h-full"> {/* Ensure h-full here */}
+              <div className="card bg-base-100/40 shadow-xl p-4 flex-grow overflow-hidden flex flex-col h-full"> {/* Ensure h-full here */}
                 <div className="flex justify-between items-center mb-2">
                   <select
-                    className="select select-bordered bg-base-200 text-base-content"
+                    className="select select-bordered bg-base-100/40 text-base-content"
                     value={language}
                     onChange={handleLanguageChange}
                   >
@@ -452,8 +455,8 @@ const ProblemPage = () => {
               </div>
             </Panel>
 
-            <PanelResizeHandle className="group h-3 bg-base-300 hover:bg-primary-focus cursor-row-resize transition-colors flex items-center justify-center">
-              <div className="h-1 w-12 bg-primary rounded-full group-hover:bg-primary-focus" />
+            <PanelResizeHandle className="group h-3 bg-base-100/40 hover:bg-primary-focus cursor-row-resize transition-colors flex items-center justify-center">
+              <div className="h-1 w-full bg-primary rounded-full group-hover:bg-primary-focus" />
             </PanelResizeHandle>
 <Panel
   id="output-panel"
@@ -464,13 +467,13 @@ const ProblemPage = () => {
   onExpand={() => setOutputPanelSize(35)}
   onResize={(size) => setOutputPanelSize(size)}
 >
-  <div className="card bg-base-100 shadow-xl p-3 h-full flex flex-col"> 
+  <div className="card bg-base-100/40 shadow-xl p-3 h-full flex flex-col"> 
     <h2 className="text-2xl font-bold mb-4 text-primary-content">
       Output
     </h2>
 
     {/* Output box grows upward */}
-    <div className="flex-grow overflow-auto bg-base-300 text-primary-content p-4 rounded-md font-mono text-lg custom-scrollbar whitespace-pre-wrap">
+    <div className="flex-grow overflow-auto bg-base-100/40 text-primary-content p-4 rounded-md font-mono text-lg custom-scrollbar whitespace-pre-wrap">
       <pre>{output || "Run your code to see the output."}</pre>
 
       {runTestResults.length > 0 && (
@@ -520,7 +523,7 @@ const ProblemPage = () => {
           <h3 className="text-xl font-semibold mb-2 text-accent">
             Submission Result:
           </h3>
-          <div className="bg-base-300 p-4 rounded-md shadow-inner">
+          <div className="bg-base-100/40 p-4 rounded-md shadow-inner">
             <p className="text-lg">
               Status:{" "}
               <span
