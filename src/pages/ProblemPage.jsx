@@ -15,12 +15,15 @@ const ProblemPage = () => {
   const [error, setError] = useState(null);
   const [output, setOutput] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  // Changed testCases structure to hold more detail from backend for runCode
   const [runTestResults, setRunTestResults] = useState([]); // For 'Run Code' test case details
   const [submissionResult, setSubmissionResult] = useState(null); // For 'Submit Code' overall result
   const [activeLeftTab, setActiveLeftTab] = useState("description"); // 'description', 'solution', 'submissions'
-  const editorRef = useRef(null);
+  const editorRef = useRef(null); // This ref isn't strictly needed for Monaco in this setup, but kept for consistency
   const { user } = useSelector((state) => state.auth);
+
+  // New state for controlling the output panel size
+  // Adjusted initial size to give more room and ensure buttons are visible
+  const [outputPanelSize, setOutputPanelSize] = useState(25);
 
   useEffect(() => {
     const fetchProblem = async () => {
@@ -29,7 +32,6 @@ const ProblemPage = () => {
         const { data } = await axiosClient.get(`/problem/problemById/${id}`);
         setProblem(data.problem);
 
-        // Initialize code with a basic structure or problem starter code for the default language
         const initialCodeObj = data.problem.starterCode.find((item) => item.language === language);
         setCode(initialCodeObj?.initialCode || "// Write your code here");
 
@@ -44,7 +46,7 @@ const ProblemPage = () => {
     if (id) {
       fetchProblem();
     }
-  }, [id, language]); // Added language to dependency array to re-fetch/set starter code
+  }, [id, language]);
 
   const handleCodeChange = (value) => {
     setCode(value);
@@ -53,45 +55,47 @@ const ProblemPage = () => {
   const handleLanguageChange = (e) => {
     const newLanguage = e.target.value;
     setLanguage(newLanguage);
-    // When language changes, update the code with the starter code for the new language
     if (problem && problem.starterCode) {
       const initialCodeObj = problem.starterCode.find((item) => item.language === newLanguage);
       setCode(initialCodeObj?.initialCode || `// Write your ${newLanguage} code here for ${problem.title}`);
     }
   };
 
+  // Function to open the output panel
+  const openOutputPanel = () => {
+    setOutputPanelSize(35); // Set to a reasonable size when opened, ensuring buttons are visible
+  };
+
   const handleRunCode = async () => {
     setIsSubmitting(true);
     setOutput("Running code...");
-    setRunTestResults([]); // Clear previous run test cases
-    setSubmissionResult(null); // Clear previous submission result
+    setRunTestResults([]);
+    setSubmissionResult(null);
+    openOutputPanel(); // Open the output panel when code is run
+
     try {
-      // NOTE: The problemId is passed in the URL, so the backend route expects it there
-      // Your backend code looks like: router.post('/:id/run', userMiddleware, runCode);
       const { data } = await axiosClient.post(`/problem/submit/${problem._id}/run`, {
         code,
         language,
       });
 
-      // Backend returns: { success, testCases, runtime, memory, message }
       let newOutput = "";
       if (data.success === "accepted") {
         newOutput = `Execution successful! Runtime: ${data.runtime}s, Memory: ${data.memory}KB`;
       } else if (data.success === "error") {
         newOutput = `Compilation Error:\n${data.message}`;
-      } else { // wrong_answer
+      } else {
         newOutput = `Some tests failed. Message: ${data.message || 'Check test cases below.'}`;
       }
       setOutput(newOutput);
 
-      // Map backend testCases to a format suitable for display
       const mappedTestResults = data.testCases.map((tc, index) => {
-        const problemVisibleTestCase = problem.visibleTestCases[index]; // Match with original problem's visible test cases
+        const problemVisibleTestCase = problem.visibleTestCases[index];
         return {
           input: problemVisibleTestCase?.input || 'N/A',
           expected: problemVisibleTestCase?.output || 'N/A',
-          actual: tc.stdout || (tc.stderr ? `Error: ${tc.stderr}` : 'No output'), // Actual output from Judge0
-          status: tc.status_id === 3 ? "Passed" : (tc.status_id === 4 ? "Error" : "Failed"), // Judge0 status_id mapping
+          actual: tc.stdout || (tc.stderr ? `Error: ${tc.stderr}` : 'No output'),
+          status: tc.status_id === 3 ? "Passed" : (tc.status_id === 4 ? "Error" : "Failed"),
         };
       });
       setRunTestResults(mappedTestResults);
@@ -109,17 +113,16 @@ const ProblemPage = () => {
   const handleSubmitCode = async () => {
     setIsSubmitting(true);
     setOutput("Submitting code...");
-    setRunTestResults([]); // Clear run test results
-    setSubmissionResult(null); // Reset previous submission result
+    setRunTestResults([]);
+    setSubmissionResult(null);
+    openOutputPanel(); // Open the output panel when code is submitted
+
     try {
-      // NOTE: The problemId is passed in the URL, so the backend route expects it there
-      // Your backend code looks like: router.post('/:id', userMiddleware, submitProblem);
       const { data } = await axiosClient.post(`/problem/submit/${problem._id}`, {
         code,
         language,
       });
 
-      // Backend returns: { message, data: submissionResult, accepted, totalTestCases, passedTestCases, runtime, memory, msg }
       let submissionStatusMessage = "";
       if (data.accepted) {
         submissionStatusMessage = `Submission Accepted! All ${data.totalTestCases} tests passed.`;
@@ -137,7 +140,7 @@ const ProblemPage = () => {
         totalTestCases: data.totalTestCases,
         runtime: data.runtime,
         memory: data.memory,
-        statusMessage: data.msg || data.message, // Use msg for general success, message for specific error
+        statusMessage: data.msg || data.message,
       });
 
     } catch (err) {
@@ -186,8 +189,7 @@ const ProblemPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-base-200 text-base-content p-5 flex flex-col font-sans">
-      {/* Navbar (optional, or reuse HomePage's navbar) */}
+    <div className="min-h-screen flex flex-col bg-base-200 text-base-content p-5 font-sans">
       <div className="navbar bg-base-100 shadow-xl px-6 mb-3 rounded-box">
         <div className="flex-1">
           <button
@@ -204,134 +206,128 @@ const ProblemPage = () => {
         </div>
       </div>
 
-      <div className="flex gap-y-3 h-screen flex-col">
-        <PanelGroup direction="horizontal">
-          <Panel defaultSize={50} minSize={30}>
-            {/* Left Panel: Problem Description */}
-            <div className="card bg-base-100 shadow-xl p-6 overflow-auto custom-scrollbar h-full">
-              <h1 className="text-4xl font-bold mb-4 text-primary-content">
-                {problem.title}
-              </h1>
-              <div className="mb-6 flex gap-2">
-                <div
-                  className={`badge ${
-                    problem.difficulty === "easy"
-                      ? "badge-success"
-                      : problem.difficulty === "medium"
-                      ? "badge-warning"
-                      : "badge-error"
-                  } text-white p-3 text-lg font-semibold`}
-                >
-                  {problem.difficulty}
-                </div>
-                {problem.tags &&
-                  problem.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="badge badge-outline badge-info p-3 text-lg"
-                    >
-                      {tag}
-                    </span>
-                  ))}
+      {/* Main horizontal panel group */}
+      {/* flex-grow to make it take all available vertical space */}
+      <PanelGroup direction="horizontal" className="flex-grow">
+        <Panel defaultSize={50} minSize={30}>
+          {/* Left Panel: Problem Description */}
+          <div className="card bg-base-100 shadow-xl p-6 overflow-auto custom-scrollbar h-full">
+            <h1 className="text-4xl font-bold mb-4 text-primary-content">
+              {problem.title}
+            </h1>
+            <div className="mb-6 flex gap-2">
+              <div
+                className={`badge ${
+                  problem.difficulty === "easy"
+                    ? "badge-success"
+                    : problem.difficulty === "medium"
+                    ? "badge-warning"
+                    : "badge-error"
+                } text-white p-3 text-lg font-semibold`}
+              >
+                {problem.difficulty}
               </div>
+              {problem.tags &&
+                problem.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="badge badge-outline badge-info p-3 text-lg"
+                  >
+                    {tag}
+                  </span>
+                ))}
+            </div>
 
-              <div className="tabs tabs-boxed mb-4 bg-base-200">
-                <a
-                  className={`tab tab-lg ${
-                    activeLeftTab === "description" ? "tab-active text-primary" : ""
-                  }`}
-                  onClick={() => setActiveLeftTab("description")}
-                >
-                  Description
-                </a>
-                <a
-                  className={`tab tab-lg ${
-                    activeLeftTab === "solution" ? "tab-active text-primary" : ""
-                  }`}
-                  onClick={() => setActiveLeftTab("solution")}
-                >
-                  Solution
-                </a>
-                <a
-                  className={`tab tab-lg ${
-                    activeLeftTab === "submissions" ? "tab-active text-primary" : ""
-                  }`}
-                  onClick={() => setActiveLeftTab("submissions")}
-                >
-                  Submissions
-                </a>
-              </div>
+            <div className="tabs tabs-boxed mb-4 bg-base-200">
+              <a
+                className={`tab tab-lg ${
+                  activeLeftTab === "description" ? "tab-active text-primary" : ""
+                }`}
+                onClick={() => setActiveLeftTab("description")}
+              >
+                Description
+              </a>
+              <a
+                className={`tab tab-lg ${
+                  activeLeftTab === "solution" ? "tab-active text-primary" : ""
+                }`}
+                onClick={() => setActiveLeftTab("solution")}
+              >
+                Solution
+              </a>
+              <a
+                className={`tab tab-lg ${
+                  activeLeftTab === "submissions" ? "tab-active text-primary" : ""
+                }`}
+                onClick={() => setActiveLeftTab("submissions")}
+              >
+                Submissions
+              </a>
+            </div>
 
-              <div className="prose lg:prose-lg max-w-none text-base-content leading-relaxed">
-                {activeLeftTab === "description" && (
-                  <>
-                    <h2 className="text-2xl font-semibold mb-2 text-secondary">
-                      Problem Statement
-                    </h2>
-                    <p className="mb-4">{problem.description}</p>
+            <div className="prose lg:prose-lg max-w-none text-base-content leading-relaxed">
+              {activeLeftTab === "description" && (
+                <>
+                  <h2 className="text-2xl font-semibold mb-2 text-secondary">
+                    Problem Statement
+                  </h2>
+                  <p className="mb-4">{problem.description}</p>
 
-                    <h3 className="text-xl font-semibold mb-2 text-accent">
-                      Examples:
-                    </h3>
-                    {problem.visibleTestCases &&
-                      problem.visibleTestCases.length > 0 &&
-                      problem.visibleTestCases.map((ex, index) => (
-                        <div
-                          key={ex._id || index}
-                          className="bg-base-300 p-4 rounded-md mb-4 shadow-inner"
-                        >
-                          <p className="font-mono text-lg mb-1">
-                            <span className="font-bold text-primary">
-                              Input:
-                            </span>{" "}
-                            <code>{ex.input}</code>
-                          </p>
-                          <p className="font-mono text-lg">
-                            <span className="font-bold text-success">
-                              Output:
-                            </span>{" "}
-                            <code>{ex.output.trim()}</code>
-                          </p>
-                          {ex.explanation && (
-                            <p className="text-sm mt-2 text-base-content/70">
-                              <span className="font-bold">Explanation:</span>{" "}
-                              {ex.explanation}
-                            </p>
-                          )}
-                        </div>
-                      ))}
+                  <h3 className="text-xl font-semibold mb-2 text-accent">
+                    Examples:
+                  </h3>
+                  {problem.visibleTestCases &&
+                    problem.visibleTestCases.length > 0 &&
+                    problem.visibleTestCases.map((ex, index) => (
+                      <div
+                        key={ex._id || index}
+                        className="bg-base-300 p-4 rounded-md mb-4 shadow-inner"
+                      >
+                        <p className="font-mono text-lg mb-1">
+                          <span className="font-bold text-primary">
+                            Input:
+                          </span>{" "}
+                          <code>{ex.input}</code>
+                        </p>
+                        <p className="font-mono text-lg">
+                          <span className="font-bold text-success">
+                            Output:
+                          </span>{" "}
+                          <code>{ex.output.trim()}</code>
+                        </p>
+                      </div>
+                    ))}
 
-                    <h3 className="text-xl font-semibold mb-2 text-accent">
-                      Constraints:
-                    </h3>
-                    <ul className="list-disc list-inside bg-base-300 p-4 rounded-md shadow-inner">
-                      {problem.constraints && (
-                        <>
-                          <li>Time Limit: {problem.constraints.timeLimit}</li>
-                          <li>
-                            Memory Limit: {problem.constraints.memoryLimit}
-                          </li>
-                        </>
-                      )}
-                    </ul>
-                  </>
-                )}
-                {activeLeftTab === "solution" && (
-                  <div>
-                    <h2 className="text-2xl font-semibold mb-2 text-secondary">
-                      Solution (Premium Content)
-                    </h2>
-                    <p>
-                      This section would typically contain official solutions,
-                      video explanations, etc.
-                    </p>
-                    <p className="text-warning">
-                      Access to solutions often requires a premium subscription.
-                    </p>
-                    {/* Dummy solution content */}
-                    <pre className="bg-base-300 p-4 rounded-md overflow-x-auto mt-4 text-primary-content">
-                      <code>
-                        {`function twoSum(nums, target) {
+                  <h3 className="text-xl font-semibold mb-2 text-accent">
+                    Constraints:
+                  </h3>
+                  <ul className="list-disc list-inside bg-base-300 p-4 rounded-md shadow-inner">
+                    {problem.constraints && (
+                      <>
+                        <li>Time Limit: {problem.constraints.timeLimit}</li>
+                        <li>
+                          Memory Limit: {problem.constraints.memoryLimit}
+                        </li>
+                      </>
+                    )}
+                  </ul>
+                </>
+              )}
+              {activeLeftTab === "solution" && (
+                <div>
+                  <h2 className="text-2xl font-semibold mb-2 text-secondary">
+                    Solution (Premium Content)
+                  </h2>
+                  <p>
+                    This section would typically contain official solutions,
+                    video explanations, etc.
+                  </p>
+                  <p className="text-warning">
+                    Access to solutions often requires a premium subscription.
+                  </p>
+                  <pre className="bg-base-300 p-4 rounded-md overflow-x-auto mt-4 text-primary-content">
+                    <code>
+                      {`function twoSum(nums, target) {
   const map = new Map();
   for (let i = 0; i < nums.length; i++) {
     const complement = target - nums[i];
@@ -342,57 +338,55 @@ const ProblemPage = () => {
   }
   return [];
 }`}
-                      </code>
-                    </pre>
-                  </div>
-                )}
-                {activeLeftTab === "submissions" && (
-                  <div>
-                    <h2 className="text-2xl font-semibold mb-2 text-secondary">
-                      Your Submissions
-                    </h2>
-                    {user ? (
-                      <p className="text-info">
-                        Fetching your past submissions...
-                      </p>
-                    ) : (
-                      // Here you would fetch and display user's past submissions for this problem
-                      <p className="text-warning">
-                        Please log in to view your submissions.
-                      </p>
-                    )}
-                    {/* Dummy submissions */}
-                    <ul className="mt-4">
-                      <li className="bg-base-300 p-3 rounded-md mb-2 flex justify-between items-center">
-                        <span className="font-mono text-success">Accepted</span>
-                        <span className="text-sm text-base-content/70">
-                          2 days ago
-                        </span>
-                      </li>
-                      <li className="bg-base-300 p-3 rounded-md mb-2 flex justify-between items-center">
-                        <span className="font-mono text-error">
-                          Wrong Answer
-                        </span>
-                        <span className="text-sm text-base-content/70">
-                          3 days ago
-                        </span>
-                      </li>
-                    </ul>
-                  </div>
-                )}
-              </div>
+                    </code>
+                  </pre>
+                </div>
+              )}
+              {activeLeftTab === "submissions" && (
+                <div>
+                  <h2 className="text-2xl font-semibold mb-2 text-secondary">
+                    Your Submissions
+                  </h2>
+                  {user ? (
+                    <p className="text-info">
+                      Fetching your past submissions...
+                    </p>
+                  ) : (
+                    <p className="text-warning">
+                      Please log in to view your submissions.
+                    </p>
+                  )}
+                  <ul className="mt-4">
+                    <li className="bg-base-300 p-3 rounded-md mb-2 flex justify-between items-center">
+                      <span className="font-mono text-success">Accepted</span>
+                      <span className="text-sm text-base-content/70">
+                        2 days ago
+                      </span>
+                    </li>
+                    <li className="bg-base-300 p-3 rounded-md mb-2 flex justify-between items-center">
+                      <span className="font-mono text-error">
+                        Wrong Answer
+                      </span>
+                      <span className="text-sm text-base-content/70">
+                        3 days ago
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+              )}
             </div>
-          </Panel>
-          <PanelResizeHandle className="group w-3 bg-base-300 hover:bg-primary-focus cursor-col-resize transition-colors flex items-center justify-center">
-            {/* Bar inside */}
-            <div className="w-1 h-12 bg-primary rounded-full group-hover:bg-primary-focus" />
-          </PanelResizeHandle>
+          </div>
+        </Panel>
 
-          <Panel defaultSize={50} minSize={30}>
-            {/* Right Panel: Code Editor and Output */}
-            <div className="flex flex-col h-full gap-3">
-              <div className="card bg-base-100 shadow-xl p-4 flex-grow overflow-hidden flex flex-col">
+        <PanelResizeHandle className="group w-3 bg-base-300 hover:bg-primary-focus cursor-col-resize transition-colors flex items-center justify-center">
+          <div className="w-1 h-12 bg-primary rounded-full group-hover:bg-primary-focus" />
+        </PanelResizeHandle>
 
+        <Panel defaultSize={50} minSize={30}>
+          {/* Right Panel: Code Editor and Output, now split vertically */}
+          <PanelGroup direction="vertical">
+            <Panel defaultSize={65} minSize={20}> {/* Editor panel */}
+              <div className="card bg-base-100 shadow-xl p-4 flex-grow overflow-hidden flex flex-col h-full"> {/* Ensure h-full here */}
                 <div className="flex justify-between items-center mb-2">
                   <select
                     className="select select-bordered bg-base-200 text-base-content"
@@ -406,7 +400,7 @@ const ProblemPage = () => {
                   </select>
                   <div className="flex gap-2">
                     <button
-                      className="btn btn-outline btn-warning"
+                      className="btn btn-outline btn-warning btn-sm"
                       onClick={() => {
                         if (problem && problem.starterCode) {
                           const initialCodeObj = problem.starterCode.find((item) => item.language === language);
@@ -421,12 +415,11 @@ const ProblemPage = () => {
                   </div>
                 </div>
 
-                {/* Monaco Editor */}
                 <div className="flex-grow border border-base-300 rounded-md overflow-hidden">
                   <Editor
                     height="100%"
-                    language={language || 'javascript'} // Ensure a default language
-                    value={code || `// Write your code here for ${problem.title}`} // Ensure a default value
+                    language={language || 'javascript'}
+                    value={code || `// Write your code here for ${problem.title}`}
                     onChange={handleCodeChange}
                     theme="vs-dark"
                     options={{
@@ -449,19 +442,31 @@ const ProblemPage = () => {
                   />
                 </div>
               </div>
+            </Panel>
 
-              <div className="card bg-base-100 shadow-xl p-3">
+            <PanelResizeHandle className="group h-3 bg-base-300 hover:bg-primary-focus cursor-row-resize transition-colors flex items-center justify-center">
+              <div className="h-1 w-12 bg-primary rounded-full group-hover:bg-primary-focus" />
+            </PanelResizeHandle>
+
+            <Panel
+              id="output-panel"
+              defaultSize={outputPanelSize} // Use state for initial size
+              minSize={15} // Increased minSize to better ensure buttons visibility
+              collapsedSize={0} // Define collapsed size
+              onCollapse={() => setOutputPanelSize(0)}
+              onExpand={() => setOutputPanelSize(35)} // Re-expand to 35%
+              onResize={(size) => setOutputPanelSize(size)}
+            >
+              <div className="card bg-base-100 shadow-xl p-3 h-full flex flex-col"> {/* Ensure h-full and flex-col */}
                 <h2 className="text-2xl font-bold mb-4 text-primary-content">
                   Output
                 </h2>
                 <div
-                  className="bg-base-300 text-primary-content p-4 rounded-md font-mono text-lg overflow-auto custom-scrollbar whitespace-pre-wrap" // Added whitespace-pre-wrap for output
-                  style={{ minHeight: "100px" }}
+                  className="bg-base-300 text-primary-content p-4 rounded-md font-mono text-lg overflow-auto custom-scrollbar whitespace-pre-wrap flex-grow" // flex-grow to take available space
                 >
                   <pre>{output || "Run your code to see the output."}</pre>
                 </div>
 
-                {/* Display for Run Code Test Results */}
                 {runTestResults.length > 0 && (
                   <div className="mt-4">
                     <h3 className="text-xl font-semibold mb-2 text-accent">
@@ -504,7 +509,6 @@ const ProblemPage = () => {
                   </div>
                 )}
 
-                {/* Display for Submit Code Result */}
                 {submissionResult && (
                   <div className="mt-4">
                     <h3 className="text-xl font-semibold mb-2 text-accent">
@@ -537,29 +541,29 @@ const ProblemPage = () => {
 
                 <div className="card-actions justify-end mt-6 gap-4">
                   <button
-                    className="btn btn-primary btn-lg"
+                    className="btn btn-primary btn-sm"
                     onClick={handleRunCode}
                     disabled={isSubmitting}
                   >
                     {isSubmitting ? (
                       <>
-                        <span className="loading loading-spinner"></span>
+                        <span className="loading loading-spinner loading-sm"></span>
                         Running
                       </>
                     ) : (
                       <>
-                        <i className="fas fa-play mr-2"></i> Run Code
+                        <i className="fas fa-play mr-2"></i> Run
                       </>
                     )}
                   </button>
                   <button
-                    className="btn btn-success btn-lg"
+                    className="btn btn-success btn-sm"
                     onClick={handleSubmitCode}
                     disabled={isSubmitting}
                   >
                     {isSubmitting ? (
                       <>
-                        <span className="loading loading-spinner"></span>
+                        <span className="loading loading-spinner loading-sm"></span>
                         Submitting
                       </>
                     ) : (
@@ -570,35 +574,29 @@ const ProblemPage = () => {
                   </button>
                 </div>
               </div>
-            </div>
-          </Panel>
-        </PanelGroup>
-      </div>
+            </Panel>
+          </PanelGroup>
+        </Panel>
+      </PanelGroup>
 
-      {/* Footer */}
-      <footer className="footer footer-center p-4 bg-base-300 text-base-content mt-8 rounded-box">
-        <aside>
-          <p>Copyright © 2024 - All right reserved by SpidyLeet</p>
-        </aside>
-      </footer>
+      {/* The footer has been removed */}
 
-      {/* Custom Scrollbar Styling (can be in index.css or global stylesheet) */}
       <style>{`
         .custom-scrollbar::-webkit-scrollbar {
           width: 8px;
           height: 8px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
-          background: #333; /* Darker track */
+          background: #333;
           border-radius: 10px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #6D28D9; /* Primary purple */
+          background: #6D28D9;
           border-radius: 10px;
-          border: 2px solid #333; /* Add border for contrast */
+          border: 2px solid #333;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #8B5CF6; /* Lighter purple on hover */
+          background: #8B5CF6;
         }
         .prose code {
           background-color: #333;
