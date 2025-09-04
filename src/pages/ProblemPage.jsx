@@ -189,7 +189,15 @@ const ProblemPage = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-base-200 text-base-content p-5 font-sans">
+    <div className="min-h-screen flex flex-col text-base-content p-5 font-sans"
+        style={{
+        backgroundImage:
+          "url('/Generated Image August 29, 2025 - 4_41PM.jpeg')",
+        backgroundRepeat: "no-repeat",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}
+    >
       <div className="navbar bg-base-100 shadow-xl px-6 mb-3 rounded-box">
         <div className="flex-1">
           <button
@@ -447,134 +455,136 @@ const ProblemPage = () => {
             <PanelResizeHandle className="group h-3 bg-base-300 hover:bg-primary-focus cursor-row-resize transition-colors flex items-center justify-center">
               <div className="h-1 w-12 bg-primary rounded-full group-hover:bg-primary-focus" />
             </PanelResizeHandle>
+<Panel
+  id="output-panel"
+  defaultSize={outputPanelSize}
+  minSize={15}
+  collapsedSize={0}
+  onCollapse={() => setOutputPanelSize(0)}
+  onExpand={() => setOutputPanelSize(35)}
+  onResize={(size) => setOutputPanelSize(size)}
+>
+  <div className="card bg-base-100 shadow-xl p-3 h-full flex flex-col"> 
+    <h2 className="text-2xl font-bold mb-4 text-primary-content">
+      Output
+    </h2>
 
-            <Panel
-              id="output-panel"
-              defaultSize={outputPanelSize} // Use state for initial size
-              minSize={15} // Increased minSize to better ensure buttons visibility
-              collapsedSize={0} // Define collapsed size
-              onCollapse={() => setOutputPanelSize(0)}
-              onExpand={() => setOutputPanelSize(35)} // Re-expand to 35%
-              onResize={(size) => setOutputPanelSize(size)}
-            >
-              <div className="card bg-base-100 shadow-xl p-3 h-full flex flex-col"> {/* Ensure h-full and flex-col */}
-                <h2 className="text-2xl font-bold mb-4 text-primary-content">
-                  Output
-                </h2>
-                <div
-                  className="bg-base-300 text-primary-content p-4 rounded-md font-mono text-lg overflow-auto custom-scrollbar whitespace-pre-wrap flex-grow" // flex-grow to take available space
-                >
-                  <pre>{output || "Run your code to see the output."}</pre>
-                </div>
+    {/* Output box grows upward */}
+    <div className="flex-grow overflow-auto bg-base-300 text-primary-content p-4 rounded-md font-mono text-lg custom-scrollbar whitespace-pre-wrap">
+      <pre>{output || "Run your code to see the output."}</pre>
 
-                {runTestResults.length > 0 && (
-                  <div className="mt-4">
-                    <h3 className="text-xl font-semibold mb-2 text-accent">
-                      Test Cases (Run Code):
-                    </h3>
-                    <div className="overflow-x-auto">
-                      <table className="table w-full text-base-content">
-                        <thead>
-                          <tr>
-                            <th>Input</th>
-                            <th>Expected</th>
-                            <th>Actual</th>
-                            <th>Status</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {runTestResults.map((tc, index) => (
-                            <tr key={index}>
-                              <td className="max-w-[150px] overflow-hidden text-ellipsis">{tc.input}</td>
-                              <td className="max-w-[150px] overflow-hidden text-ellipsis">{tc.expected}</td>
-                              <td className="max-w-[150px] overflow-hidden text-ellipsis">{tc.actual}</td>
-                              <td>
-                                <span
-                                  className={`badge ${
-                                    tc.status === "Passed"
-                                      ? "badge-success"
-                                      : tc.status === "Error"
-                                      ? "badge-error"
-                                      : "badge-warning"
-                                  }`}
-                                >
-                                  {tc.status}
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
+      {runTestResults.length > 0 && (
+        <div className="mt-4">
+          <h3 className="text-xl font-semibold mb-2 text-accent">
+            Test Cases (Run Code):
+          </h3>
+          <div className="overflow-x-auto">
+            <table className="table w-full text-base-content">
+              <thead>
+                <tr>
+                  <th>Input</th>
+                  <th>Expected</th>
+                  <th>Actual</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {runTestResults.map((tc, index) => (
+                  <tr key={index}>
+                    <td className="max-w-[150px] overflow-hidden text-ellipsis">{tc.input}</td>
+                    <td className="max-w-[150px] overflow-hidden text-ellipsis">{tc.expected}</td>
+                    <td className="max-w-[150px] overflow-hidden text-ellipsis">{tc.actual}</td>
+                    <td>
+                      <span
+                        className={`badge ${
+                          tc.status === "Passed"
+                            ? "badge-success"
+                            : tc.status === "Error"
+                            ? "badge-error"
+                            : "badge-warning"
+                        }`}
+                      >
+                        {tc.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
-                {submissionResult && (
-                  <div className="mt-4">
-                    <h3 className="text-xl font-semibold mb-2 text-accent">
-                      Submission Result:
-                    </h3>
-                    <div className="bg-base-300 p-4 rounded-md shadow-inner">
-                      <p className="text-lg">
-                        Status:{" "}
-                        <span
-                          className={`font-bold ${
-                            submissionResult.accepted ? "text-success" : "text-error"
-                          }`}
-                        >
-                          {submissionResult.accepted ? "Accepted" : "Wrong Answer"}
-                        </span>
-                      </p>
-                      <p className="text-lg">
-                        Passed Tests: {submissionResult.passedTestCases} /{" "}
-                        {submissionResult.totalTestCases}
-                      </p>
-                      <p className="text-lg">Runtime: {submissionResult.runtime}s</p>
-                      <p className="text-lg">Memory: {submissionResult.memory} KB</p>
-                      {submissionResult.statusMessage && !submissionResult.accepted && (
-                         <p className="text-sm mt-2 text-error">Error Message: {submissionResult.statusMessage}</p>
-                      )}
-                    </div>
-                  </div>
-                )}
+      {submissionResult && (
+        <div className="mt-4">
+          <h3 className="text-xl font-semibold mb-2 text-accent">
+            Submission Result:
+          </h3>
+          <div className="bg-base-300 p-4 rounded-md shadow-inner">
+            <p className="text-lg">
+              Status:{" "}
+              <span
+                className={`font-bold ${
+                  submissionResult.accepted ? "text-success" : "text-error"
+                }`}
+              >
+                {submissionResult.accepted ? "Accepted" : "Wrong Answer"}
+              </span>
+            </p>
+            <p className="text-lg">
+              Passed Tests: {submissionResult.passedTestCases} /{" "}
+              {submissionResult.totalTestCases}
+            </p>
+            <p className="text-lg">Runtime: {submissionResult.runtime}s</p>
+            <p className="text-lg">Memory: {submissionResult.memory} KB</p>
+            {submissionResult.statusMessage && !submissionResult.accepted && (
+              <p className="text-sm mt-2 text-error">
+                Error Message: {submissionResult.statusMessage}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
 
+    {/* Buttons stay pinned to bottom */}
+    <div className="card-actions justify-end mt-4">
+      <button
+        className="btn btn-primary btn-sm"
+        onClick={handleRunCode}
+        disabled={isSubmitting}
+      >
+        {isSubmitting ? (
+          <>
+            <span className="loading loading-spinner loading-sm"></span>
+            Running
+          </>
+        ) : (
+          <>
+            <i className="fas fa-play mr-2"></i> Run
+          </>
+        )}
+      </button>
+      <button
+        className="btn btn-success btn-sm"
+        onClick={handleSubmitCode}
+        disabled={isSubmitting}
+      >
+        {isSubmitting ? (
+          <>
+            <span className="loading loading-spinner loading-sm"></span>
+            Submitting
+          </>
+        ) : (
+          <>
+            <i className="fas fa-paper-plane mr-2"></i> Submit
+          </>
+        )}
+      </button>
+    </div>
+  </div>
+</Panel>
 
-                <div className="card-actions justify-end mt-6 gap-4">
-                  <button
-                    className="btn btn-primary btn-sm"
-                    onClick={handleRunCode}
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <span className="loading loading-spinner loading-sm"></span>
-                        Running
-                      </>
-                    ) : (
-                      <>
-                        <i className="fas fa-play mr-2"></i> Run
-                      </>
-                    )}
-                  </button>
-                  <button
-                    className="btn btn-success btn-sm"
-                    onClick={handleSubmitCode}
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <span className="loading loading-spinner loading-sm"></span>
-                        Submitting
-                      </>
-                    ) : (
-                      <>
-                        <i className="fas fa-paper-plane mr-2"></i> Submit
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            </Panel>
           </PanelGroup>
         </Panel>
       </PanelGroup>
