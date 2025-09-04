@@ -13,11 +13,12 @@ const ProblemPage = () => {
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [output, setOutput] = useState(""); // Added: for displaying run/submit output
-  const [isSubmitting, setIsSubmitting] = useState(false); // Added: for loading states of buttons
-  const [testCases, setTestCases] = useState([]);
+  const [output, setOutput] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  // Changed testCases structure to hold more detail from backend for runCode
+  const [runTestResults, setRunTestResults] = useState([]); // For 'Run Code' test case details
+  const [submissionResult, setSubmissionResult] = useState(null); // For 'Submit Code' overall result
   const [activeLeftTab, setActiveLeftTab] = useState("description"); // 'description', 'solution', 'submissions'
-  // Removed activeRightTab as it wasn't used in the UI
   const editorRef = useRef(null);
   const { user } = useSelector((state) => state.auth);
 
@@ -26,10 +27,7 @@ const ProblemPage = () => {
       try {
         setLoading(true);
         const { data } = await axiosClient.get(`/problem/problemById/${id}`);
-        console.log("Fetched problem data:", data);
         setProblem(data.problem);
-        console.log("Problem data set:", data.problem);
-        console.log('Selected Language', language);
 
         // Initialize code with a basic structure or problem starter code for the default language
         const initialCodeObj = data.problem.starterCode.find((item) => item.language === language);
@@ -48,7 +46,7 @@ const ProblemPage = () => {
     }
   }, [id, language]); // Added language to dependency array to re-fetch/set starter code
 
-  const handleCodeChange = (value) => { // Corrected: value is passed directly
+  const handleCodeChange = (value) => {
     setCode(value);
   };
 
@@ -65,28 +63,44 @@ const ProblemPage = () => {
   const handleRunCode = async () => {
     setIsSubmitting(true);
     setOutput("Running code...");
-    setTestCases([]); // Clear previous test cases
+    setRunTestResults([]); // Clear previous run test cases
+    setSubmissionResult(null); // Clear previous submission result
     try {
-      const { data } = await axiosClient.post("/code/run", {
-        problemId: problem._id,
+      // NOTE: The problemId is passed in the URL, so the backend route expects it there
+      // Your backend code looks like: router.post('/:id/run', userMiddleware, runCode);
+      const { data } = await axiosClient.post(`/problem/submit/${problem._id}/run`, {
         code,
         language,
       });
-      setOutput(data.result);
-      // For a real system, you'd get test case results here
-      // For demo, let's just show a simple output
-      setTestCases([
-        {
-          input: "[1,2,3], 3",
-          expected: "6",
-          actual: data.result === "6" ? "6" : "N/A", // This logic needs to be based on actual test results
-          status: data.result === "6" ? "Passed" : "Failed",
-        },
-      ]);
+
+      // Backend returns: { success, testCases, runtime, memory, message }
+      let newOutput = "";
+      if (data.success === "accepted") {
+        newOutput = `Execution successful! Runtime: ${data.runtime}s, Memory: ${data.memory}KB`;
+      } else if (data.success === "error") {
+        newOutput = `Compilation Error:\n${data.message}`;
+      } else { // wrong_answer
+        newOutput = `Some tests failed. Message: ${data.message || 'Check test cases below.'}`;
+      }
+      setOutput(newOutput);
+
+      // Map backend testCases to a format suitable for display
+      const mappedTestResults = data.testCases.map((tc, index) => {
+        const problemVisibleTestCase = problem.visibleTestCases[index]; // Match with original problem's visible test cases
+        return {
+          input: problemVisibleTestCase?.input || 'N/A',
+          expected: problemVisibleTestCase?.output || 'N/A',
+          actual: tc.stdout || (tc.stderr ? `Error: ${tc.stderr}` : 'No output'), // Actual output from Judge0
+          status: tc.status_id === 3 ? "Passed" : (tc.status_id === 4 ? "Error" : "Failed"), // Judge0 status_id mapping
+        };
+      });
+      setRunTestResults(mappedTestResults);
+
     } catch (err) {
       console.error("Error running code:", err);
-      setOutput(`Error: ${err.response?.data?.message || err.message}`);
-      setTestCases([]);
+      const errorMessage = err.response?.data?.message || err.message;
+      setOutput(`Error: ${errorMessage}`);
+      setRunTestResults([]);
     } finally {
       setIsSubmitting(false);
     }
@@ -95,20 +109,42 @@ const ProblemPage = () => {
   const handleSubmitCode = async () => {
     setIsSubmitting(true);
     setOutput("Submitting code...");
+    setRunTestResults([]); // Clear run test results
+    setSubmissionResult(null); // Reset previous submission result
     try {
-      const { data } = await axiosClient.post("/code/submit", {
-        problemId: problem._id,
+      // NOTE: The problemId is passed in the URL, so the backend route expects it there
+      // Your backend code looks like: router.post('/:id', userMiddleware, submitProblem);
+      const { data } = await axiosClient.post(`/problem/submit/${problem._id}`, {
         code,
         language,
       });
-      setOutput(data.message || "Submission successful!");
-      // Update solved problems for the user if successful
-      if (data.isSolved && user) {
-        console.log("Problem marked as solved!");
+
+      // Backend returns: { message, data: submissionResult, accepted, totalTestCases, passedTestCases, runtime, memory, msg }
+      let submissionStatusMessage = "";
+      if (data.accepted) {
+        submissionStatusMessage = `Submission Accepted! All ${data.totalTestCases} tests passed.`;
+      } else {
+        submissionStatusMessage = `Submission Failed! Passed ${data.passedTestCases} out of ${data.totalTestCases} tests.`;
+        if (data.message) {
+          submissionStatusMessage += `\nError: ${data.message}`;
+        }
       }
+      setOutput(submissionStatusMessage);
+
+      setSubmissionResult({
+        accepted: data.accepted,
+        passedTestCases: data.passedTestCases,
+        totalTestCases: data.totalTestCases,
+        runtime: data.runtime,
+        memory: data.memory,
+        statusMessage: data.msg || data.message, // Use msg for general success, message for specific error
+      });
+
     } catch (err) {
       console.error("Error submitting code:", err);
-      setOutput(`Error: ${err.response?.data?.message || err.message}`);
+      const errorMessage = err.response?.data?.message || err.message;
+      setOutput(`Error: ${errorMessage}`);
+      setSubmissionResult(null);
     } finally {
       setIsSubmitting(false);
     }
@@ -150,9 +186,9 @@ const ProblemPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-base-200 text-base-content p-8 flex flex-col font-sans">
+    <div className="min-h-screen bg-base-200 text-base-content p-5 flex flex-col font-sans">
       {/* Navbar (optional, or reuse HomePage's navbar) */}
-      <div className="navbar bg-base-100 shadow-xl px-6 mb-8 rounded-box">
+      <div className="navbar bg-base-100 shadow-xl px-6 mb-3 rounded-box">
         <div className="flex-1">
           <button
             onClick={() => navigate("/")}
@@ -168,7 +204,7 @@ const ProblemPage = () => {
         </div>
       </div>
 
-      <div className="flex gap-8 h-screen flex-col">
+      <div className="flex gap-y-3 h-screen flex-col">
         <PanelGroup direction="horizontal">
           <Panel defaultSize={50} minSize={30}>
             {/* Left Panel: Problem Description */}
@@ -354,12 +390,10 @@ const ProblemPage = () => {
 
           <Panel defaultSize={50} minSize={30}>
             {/* Right Panel: Code Editor and Output */}
-            <div className="flex flex-col h-full gap-8">
-              <div className="card bg-base-100 shadow-xl p-6 flex-grow overflow-hidden flex flex-col">
-                <h2 className="text-2xl font-bold mb-4 text-primary-content">
-                  Code Editor
-                </h2>
-                <div className="flex justify-between items-center mb-4">
+            <div className="flex flex-col h-full gap-3">
+              <div className="card bg-base-100 shadow-xl p-4 flex-grow overflow-hidden flex flex-col">
+
+                <div className="flex justify-between items-center mb-2">
                   <select
                     className="select select-bordered bg-base-200 text-base-content"
                     value={language}
@@ -416,21 +450,22 @@ const ProblemPage = () => {
                 </div>
               </div>
 
-              <div className="card bg-base-100 shadow-xl p-6">
+              <div className="card bg-base-100 shadow-xl p-3">
                 <h2 className="text-2xl font-bold mb-4 text-primary-content">
                   Output
                 </h2>
                 <div
-                  className="bg-base-300 text-primary-content p-4 rounded-md font-mono text-lg overflow-auto custom-scrollbar"
-                  style={{ minHeight: "150px" }}
+                  className="bg-base-300 text-primary-content p-4 rounded-md font-mono text-lg overflow-auto custom-scrollbar whitespace-pre-wrap" // Added whitespace-pre-wrap for output
+                  style={{ minHeight: "100px" }}
                 >
                   <pre>{output || "Run your code to see the output."}</pre>
                 </div>
 
-                {testCases.length > 0 && (
+                {/* Display for Run Code Test Results */}
+                {runTestResults.length > 0 && (
                   <div className="mt-4">
                     <h3 className="text-xl font-semibold mb-2 text-accent">
-                      Test Cases:
+                      Test Cases (Run Code):
                     </h3>
                     <div className="overflow-x-auto">
                       <table className="table w-full text-base-content">
@@ -443,17 +478,19 @@ const ProblemPage = () => {
                           </tr>
                         </thead>
                         <tbody>
-                          {testCases.map((tc, index) => (
+                          {runTestResults.map((tc, index) => (
                             <tr key={index}>
-                              <td>{tc.input}</td>
-                              <td>{tc.expected}</td>
-                              <td>{tc.actual}</td>
+                              <td className="max-w-[150px] overflow-hidden text-ellipsis">{tc.input}</td>
+                              <td className="max-w-[150px] overflow-hidden text-ellipsis">{tc.expected}</td>
+                              <td className="max-w-[150px] overflow-hidden text-ellipsis">{tc.actual}</td>
                               <td>
                                 <span
                                   className={`badge ${
                                     tc.status === "Passed"
                                       ? "badge-success"
-                                      : "badge-error"
+                                      : tc.status === "Error"
+                                      ? "badge-error"
+                                      : "badge-warning"
                                   }`}
                                 >
                                   {tc.status}
@@ -466,6 +503,37 @@ const ProblemPage = () => {
                     </div>
                   </div>
                 )}
+
+                {/* Display for Submit Code Result */}
+                {submissionResult && (
+                  <div className="mt-4">
+                    <h3 className="text-xl font-semibold mb-2 text-accent">
+                      Submission Result:
+                    </h3>
+                    <div className="bg-base-300 p-4 rounded-md shadow-inner">
+                      <p className="text-lg">
+                        Status:{" "}
+                        <span
+                          className={`font-bold ${
+                            submissionResult.accepted ? "text-success" : "text-error"
+                          }`}
+                        >
+                          {submissionResult.accepted ? "Accepted" : "Wrong Answer"}
+                        </span>
+                      </p>
+                      <p className="text-lg">
+                        Passed Tests: {submissionResult.passedTestCases} /{" "}
+                        {submissionResult.totalTestCases}
+                      </p>
+                      <p className="text-lg">Runtime: {submissionResult.runtime}s</p>
+                      <p className="text-lg">Memory: {submissionResult.memory} KB</p>
+                      {submissionResult.statusMessage && !submissionResult.accepted && (
+                         <p className="text-sm mt-2 text-error">Error Message: {submissionResult.statusMessage}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
 
                 <div className="card-actions justify-end mt-6 gap-4">
                   <button
