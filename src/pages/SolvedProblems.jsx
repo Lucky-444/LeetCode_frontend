@@ -1,55 +1,77 @@
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router";
-import { useState, useEffect } from "react";
-import axiosClient from "../utils/axiosClient.js"; // Assuming this is for future API calls
+import { useState, useEffect, useCallback } from "react"; // Added useCallback
+import axiosClient from "../utils/axiosClient.js";
 
 const SolvedProblems = () => {
   const navigate = useNavigate();
-
-  // Get user information from Redux store
   const { user } = useSelector((state) => state.auth);
 
-  const [allProblems, setAllProblems] = useState([]); // All problems from the backend
-  const [userSolvedProblemIds, setUserSolvedProblemIds] = useState(new Set()); // Set of _id's for quick lookup
+  const [solvedProblems, setSolvedProblems] = useState([]); // This will hold the paginated solved problems
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalProblemsCount, setTotalProblemsCount] = useState(0); // Total count of solved problems
+  const problemsPerPage = 10; // Match backend limit
+
+  // Filter state
   const [filters, setFilters] = useState({
     difficulty: "all",
     tags: "all",
+    // We'll add a 'search' filter if you need text search later
   });
+  // You might still need all problems to dynamically populate tag filters
+  const [allPossibleTags, setAllPossibleTags] = useState(new Set());
+
+
+  // Function to fetch user's solved problems from the backend
+  // Memoize with useCallback to prevent unnecessary re-renders and issues with useEffect dependencies
+  const fetchUserSolvedProblems = useCallback(async (page = 1) => {
+    if (!user) {
+      setError("User not authenticated. Please log in.");
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await axiosClient.get("/problem/problemSolvedByUser", {
+        params: {
+          page: page,
+          limit: problemsPerPage,
+          // You could pass filters to the backend here if you implement server-side filtering
+          // difficulty: filters.difficulty === 'all' ? undefined : filters.difficulty,
+          // tags: filters.tags === 'all' ? undefined : filters.tags,
+        },
+      });
+
+      setSolvedProblems(response.data.problemSolved);
+      setCurrentPage(response.data.currentPage);
+      setTotalPages(response.data.totalPages);
+      setTotalProblemsCount(response.data.totalProblems); // Set the total count
+
+      // Also fetch ALL problems (or a filtered list of all problems) to get all possible tags
+      // This is a separate call to avoid issues with pagination
+      const allProblemsResponse = await axiosClient.get("/problem/getAllProblems");
+      const tags = new Set(allProblemsResponse.data.problems.flatMap(p => p.tags || []));
+      setAllPossibleTags(tags);
+
+    } catch (err) {
+      console.error("Error fetching solved problems:", err);
+      setError(err.response?.data?.message || "Failed to fetch solved problems.");
+    } finally {
+      setLoading(false);
+    }
+  }, [user, problemsPerPage]); // Dependencies for useCallback
 
   useEffect(() => {
-    const fetchAllProblemsAndSolvedStatus = async () => {
-      if (!user) {
-        setError("User not authenticated. Please log in.");
-        setLoading(false);
-        return;
-      }
-
-      setLoading(true);
-      setError(null);
-
-      try {
-        // Fetch ALL problems (as we need full problem objects for filtering, not just solved IDs)
-        const problemsResponse = await axiosClient.get("/problem/getAllProblems");
-        setAllProblems(problemsResponse.data.problems);
-
-        // Fetch user's solved problem IDs
-        const solvedResponse = await axiosClient.get("/problem/problemSolvedByUser");
-        const solvedIds = new Set(solvedResponse.data.problemSolved.map(p => p._id));
-        setUserSolvedProblemIds(solvedIds);
-
-      } catch (err) {
-        console.error("Error fetching problems:", err);
-        setError(err.response?.data?.message || "Failed to fetch problems.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchAllProblemsAndSolvedStatus();
-  }, [user]); // Re-run if user changes (e.g., after login/logout)
+    fetchUserSolvedProblems(currentPage);
+  }, [fetchUserSolvedProblems, currentPage]); // Re-fetch when page or the fetch function (due to user) changes
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
@@ -57,30 +79,31 @@ const SolvedProblems = () => {
       ...prevFilters,
       [name]: value,
     }));
+    // When filters change, reset to the first page (optional, but good UX)
+    setCurrentPage(1);
+  };
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+    }
   };
 
   const handleViewProblem = (problem) => {
-    // Navigate to the problem detail page
     navigate(`/problem/${problem._id}`);
   };
 
-  // Filter problems to only show solved ones, then apply difficulty/tag filters
-  const filteredAndSolvedProblems = (allProblems || [])
-    .filter((problem) => userSolvedProblemIds.has(problem._id)) // Only show problems the user has solved
-    .filter((problem) => {
-      // Filter by difficulty
-      if (
-        filters.difficulty !== "all" &&
-        problem.difficulty !== filters.difficulty
-      ) {
-        return false;
-      }
-      // Filter by tags (checks if ANY tag matches)
-      if (filters.tags !== "all" && !problem.tags?.includes(filters.tags)) {
-        return false;
-      }
-      return true;
-    });
+  // Client-side filtering on the currently fetched page of solved problems
+  const filteredSolvedProblems = (solvedProblems || []).filter((problem) => {
+    if (filters.difficulty !== "all" && problem.difficulty !== filters.difficulty) {
+      return false;
+    }
+    if (filters.tags !== "all" && !problem.tags?.includes(filters.tags)) {
+      return false;
+    }
+    return true;
+  });
+
 
   if (loading) {
     return (
@@ -108,7 +131,6 @@ const SolvedProblems = () => {
     <div
       className="min-h-screen bg-base-200 relative flex flex-col font-sans"
       style={{
-        // Re-using the background from HomePage for consistency
         backgroundImage:
           "url('/ChatGPT Image Aug 29, 2025, 02_32_26 AM.png')",
         backgroundRepeat: "no-repeat",
@@ -116,23 +138,15 @@ const SolvedProblems = () => {
         backgroundPosition: "center",
       }}
     >
-
-        {/* Add a dark overlay for better readability */}
-      <div className="absolute inset-0 bg-black/50 z-0"></div>  
-  
-      {/* Navbar (Optional, you might use a shared Layout component) */}
-      {/* I'm omitting the full Navbar here to keep the example focused, 
-          but you could include it or use a RootLayout. */}
+      <div className="absolute inset-0 bg-black/50 z-0"></div>
 
       <div className="p-8 relative z-10 flex-grow container mx-auto">
         <h1 className="text-5xl font-extrabold text-white mb-8 animate-fade-in-left">
           Your <span className="text-primary-content">Solved</span> Problems 🏆
         </h1>
 
-        {/* Filters Row */}
         <div className="mt-8 p-6 bg-base-100/40 backdrop-blur-md rounded-box shadow-xl animate-fade-in-up delay-100">
           <div className="flex flex-wrap gap-4 mb-6">
-            {/* Difficulty Filter */}
             <select
               name="difficulty"
               value={filters.difficulty}
@@ -145,7 +159,6 @@ const SolvedProblems = () => {
               <option value="hard">Hard</option>
             </select>
 
-            {/* Tags Filter (using dummy tags for now, ideally fetch unique tags from `allProblems`) */}
             <select
               name="tags"
               value={filters.tags}
@@ -153,8 +166,7 @@ const SolvedProblems = () => {
               className="select select-bordered w-full max-w-xs bg-base-200/80 text-base-content"
             >
               <option value="all">All Tags</option>
-              {/* Dynamically generate tag options from your `allProblems` or a predefined list */}
-              {[...new Set(allProblems.flatMap(p => p.tags || []))]
+              {[...allPossibleTags] // Use the state for dynamic tags
                 .sort()
                 .map(tag => (
                   <option key={tag} value={tag}>{tag}</option>
@@ -173,8 +185,8 @@ const SolvedProblems = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredAndSolvedProblems.length > 0 ? (
-                  filteredAndSolvedProblems.map((problem) => (
+                {filteredSolvedProblems.length > 0 ? (
+                  filteredSolvedProblems.map((problem) => (
                     <tr
                       key={problem._id}
                       className="hover:bg-base-200 transition-colors duration-200"
@@ -225,12 +237,33 @@ const SolvedProblems = () => {
                       colSpan="4"
                       className="text-center py-4 text-xl text-info"
                     >
-                      No solved problems found matching your filters.
+                      No solved problems found matching your filters for this page.
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Pagination Controls */}
+          <div className="flex justify-center mt-6">
+            <button
+              className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-900 mx-2"
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </button>
+            <span className="text-white text-lg flex items-center">
+              Page {currentPage} of {totalPages} (Total: {totalProblemsCount})
+            </span>
+            <button
+              className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-900 mx-2"
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </button>
           </div>
         </div>
       </div>
@@ -241,7 +274,6 @@ const SolvedProblems = () => {
         </aside>
       </footer>
 
-      {/* Re-using the same animation styles as HomePage */}
       <style>{`
         @keyframes fade-in-down {
           from { opacity: 0; transform: translateY(-20px); }
