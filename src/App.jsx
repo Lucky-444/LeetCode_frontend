@@ -7,6 +7,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useEffect } from "react";
 import AdminPage from "./pages/AdminPage";
 import ProblemPage from "./pages/ProblemPage";
+import SolvedProblems from "./pages/SolvedProblems";
 
 function App() {
   // code for the user is authenticated
@@ -84,6 +85,11 @@ function App() {
           path="/problem/:id"
           element={isAuthenticated ? <ProblemPage /> : <Navigate to="/login" />}
         />
+        <Route
+          path="/SolvedProblems"
+          element={isAuthenticated ? <SolvedProblems /> : <Navigate to="/login" />}
+        />
+
       </Routes>
     </>
   );

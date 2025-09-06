@@ -33,23 +33,11 @@ const HomePage = () => {
     }
   };
   useEffect(() => {
-    // // Simulate fetching problems with more diverse tags
-    // const dummyProblems = [
-    //   { id: 1, title: "Two Sum", difficulty: "Easy", status: "Solved", tags: ["Array", "Hash Table"] },
-    //   { id: 2, title: "Longest Substring Without Repeating Characters", difficulty: "Medium", status: "Attempted", tags: ["String", "Sliding Window"] },
-    //   { id: 3, title: "Median of Two Sorted Arrays", difficulty: "Hard", status: "Unsolved", tags: ["Array", "Divide and Conquer"] },
-    //   { id: 4, title: "Container With Most Water", difficulty: "Medium", status: "Solved", tags: ["Array", "Two Pointers"] },
-    //   { id: 5, title: "Valid Parentheses", difficulty: "Easy", status: "Unsolved", tags: ["String", "Stack"] },
-    //   { id: 6, title: "Merge Two Sorted Lists", difficulty: "Easy", status: "Solved", tags: ["Linked List", "Recursion"] },
-    //   { id: 7, title: "Longest Palindromic Substring", difficulty: "Medium", status: "Unsolved", tags: ["String", "Dynamic Programming"] },
-    //   { id: 8, title: "Two Sum II - Input Array Is Sorted", difficulty: "Easy", status: "Solved", tags: ["Array", "Two Pointers"] },
-    // ];
+
     const fetchProblems = async () => {
       try {
         const { data } = await axiosClient.get("/problem/getAllProblems");
         setProblems(data.problems);
-        // setSolvedProblems(data?.problems.filter(p => p.status === "Solved"));
-        // console.log(setSolvedProblems);
       } catch (error) {
         console.error("Error fetching problems:", error);
       }
@@ -316,7 +304,7 @@ const HomePage = () => {
               <div className="card-actions justify-end mt-4">
                 <button
                   className="btn btn-primary text-primary-content shadow-lg hover:shadow-xl transition-shadow duration-300"
-                  onClick={() => navigate("/problems?status=solved")}
+                  onClick={() => navigate("/SolvedProblems")}
                 >
                   View All
                 </button>
