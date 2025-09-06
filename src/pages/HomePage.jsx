@@ -1,8 +1,10 @@
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../authSlice";
 import { useNavigate } from "react-router";
-import { useState, useEffect } from "react";
-import axiosClient from "../utils/axiosClient.js"; // Assuming this is for future API calls
+import { useState, useEffect, useCallback } from "react";
+import axiosClient from "../utils/axiosClient.js";
+
+const PROBLEMS_PER_PAGE = 10; // Define how many problems to fetch per request
 
 const HomePage = () => {
   const dispatch = useDispatch();
@@ -15,6 +17,9 @@ const HomePage = () => {
     status: "all",
     tags: "all",
   });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMoreProblems, setHasMoreProblems] = useState(true);
+  const [loadingProblems, setLoadingProblems] = useState(false); // New state for loading indicator
 
   // Get user information from Redux store
   const { user } = useSelector((state) => state.auth);
@@ -23,7 +28,6 @@ const HomePage = () => {
     try {
       // Optional: If you have a backend logout endpoint to invalidate tokens
       // await axiosClient.post("/api/auth/logout");
-      // console.log("Backend logout successful (if implemented).");
     } catch (error) {
       console.error("Error during backend logout:", error);
     } finally {
@@ -32,18 +36,36 @@ const HomePage = () => {
       navigate("/login");
     }
   };
-  useEffect(() => {
 
-    const fetchProblems = async () => {
-      try {
-        const { data } = await axiosClient.get("/problem/getAllProblems");
-        setProblems(data.problems);
-      } catch (error) {
-        console.error("Error fetching problems:", error);
-      }
-    };
+  // Memoized fetch function for problems to prevent re-creation
+  const fetchProblems = useCallback(async (page) => {
+    setLoadingProblems(true);
+    try {
+      // Pass page and limit as query parameters
+      const { data } = await axiosClient.get(
+        `/problem/getAllProblems?page=${page}&limit=${PROBLEMS_PER_PAGE}`
+      );
+      setProblems((prevProblems) => [...prevProblems, ...data.problems]);
+      setHasMoreProblems(data.hasMore);
+      setCurrentPage(data.currentPage);
+    } catch (error) {
+      console.error("Error fetching problems:", error);
+      setHasMoreProblems(false); // Stop trying to load more if an error occurs
+    } finally {
+      setLoadingProblems(false);
+    }
+  }, []); // No dependencies, as it fetches a new page each time
+
+  useEffect(() => {
+    // Initial fetch of problems when component mounts
+    fetchProblems(1);
+
     const fetchSolvedProblems = async () => {
+      if (!user) return;
       try {
+        // Fetch ALL solved problems to correctly determine status for all problems
+        // If you expect a very large number of solved problems, you might also paginate this.
+        // For now, fetching all is simpler for accurate status marking.
         const { data } = await axiosClient.get("/problem/problemSolvedByUser");
         setSolvedProblems(data.problemSolved);
       } catch (error) {
@@ -51,9 +73,8 @@ const HomePage = () => {
       }
     };
 
-    fetchProblems();
     if (user) fetchSolvedProblems();
-  }, [user]);
+  }, [user, fetchProblems]); // Include fetchProblems in dependencies for useEffect
 
   // --- Filtering Logic ---
   const handleFilterChange = (e) => {
@@ -65,7 +86,6 @@ const HomePage = () => {
   };
 
   const handleViewProblem = (problem) => {
-    // Navigate to the problem detail page
     navigate(`/problem/${problem._id}`);
   };
 
@@ -85,7 +105,7 @@ const HomePage = () => {
     if (filters.status !== "all" && problemStatus !== filters.status) {
       return false;
     }
-    // Filter by tags (simplified for demo, checks if ANY tag matches)
+    // Filter by tags (checks if ANY tag matches)
     if (filters.tags !== "all" && !problem.tags.includes(filters.tags)) {
       return false;
     }
@@ -93,11 +113,16 @@ const HomePage = () => {
   });
   // --- End Filtering Logic ---
 
-  // console.log(filteredProblems);
+  // Function to load more problems
+  const loadMoreProblems = () => {
+    if (hasMoreProblems && !loadingProblems) {
+      fetchProblems(currentPage + 1);
+    }
+  };
 
   return (
     <div
-      className="min-h-screen bg-base-200  relative flex flex-col font-sans"
+      className="min-h-screen bg-base-200 relative flex flex-col font-sans"
       style={{
         backgroundImage:
           "url('/Generated Image August 29, 2025 - 4_41PM.jpeg')",
@@ -361,7 +386,6 @@ const HomePage = () => {
             >
               <option value="all">All Statuses</option>
               <option value="solved">Solved</option>
-              <option value="attempted">Attempted</option>
               <option value="unsolved">Unsolved</option>
             </select>
 
@@ -393,7 +417,7 @@ const HomePage = () => {
                   <th>Title</th>
                   <th>Difficulty</th>
                   <th>Status</th>
-                  <th>Tags</th> {/* Added Tags column */}
+                  <th>Tags</th>
                   <th>Action</th>
                 </tr>
               </thead>
@@ -401,7 +425,7 @@ const HomePage = () => {
                 {filteredProblems.length > 0 ? (
                   filteredProblems.map((problem) => (
                     <tr
-                      key={problem._id || problem.id || index}
+                      key={problem._id} // Ensure a unique key
                       className="hover:bg-base-200 transition-colors duration-200"
                     >
                       <td className="font-medium">{problem.title}</td>
@@ -467,6 +491,19 @@ const HomePage = () => {
               </tbody>
             </table>
           </div>
+
+          {/* Load More Button */}
+          {hasMoreProblems && (
+            <div className="text-center mt-6">
+              <button
+                onClick={loadMoreProblems}
+                className={`btn btn-primary ${loadingProblems ? 'loading' : ''}`}
+                disabled={loadingProblems}
+              >
+                {loadingProblems ? "Loading..." : "Load More Problems"}
+              </button>
+            </div>
+          )}
         </div>
         {/* --- End Filtered Problems List --- */}
       </div>
@@ -506,6 +543,22 @@ const HomePage = () => {
         .delay-100 { animation-delay: 0.1s; }
         .delay-200 { animation-delay: 0.2s; }
         .delay-300 { animation-delay: 0.3s; }
+        /* DaisyUI loading spinner for button */
+        .btn.loading::before {
+            content: '';
+            display: inline-block;
+            width: 1.5em;
+            height: 1.5em;
+            vertical-align: middle;
+            border-radius: 50%;
+            border: 2px solid currentColor;
+            border-right-color: transparent;
+            animation: spinner 0.75s linear infinite;
+            margin-right: 0.5em;
+        }
+        @keyframes spinner {
+            to { transform: rotate(360deg); }
+        }
       `}</style>
     </div>
   );
