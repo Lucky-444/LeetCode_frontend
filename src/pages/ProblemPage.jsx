@@ -11,7 +11,7 @@ const ProblemPage = () => {
   const { id } = useParams(); // Get problem ID from URL
   const navigate = useNavigate();
   const [problem, setProblem] = useState(null);
-  const [language, setLanguage] = useState("javascript"); // Default language
+  const [language, setLanguage] = useState("cpp"); // Default language
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -60,22 +60,22 @@ const ProblemPage = () => {
     setCode(value);
   };
 
-  useEffect(() => {
-    const fetchSubmissions = async () => {
-      if (!problem) return;
-      try {
-        const { data } = await axiosClient.get(
-          `/problem/submittedProblem/${problem._id}`
-        );
-        setTotalSubmission(data.submissions || []);
-        console.log("Fetched submissions:", data.submissions);
-        setError(null);
-      } catch (err) {
-        console.error("Error fetching submissions:", err);
-        setError(err.message);
-      }
-    };
+  const fetchSubmissions = async () => {
+    if (!problem) return;
+    try {
+      const { data } = await axiosClient.get(
+        `/problem/submittedProblem/${problem._id}`
+      );
+      setTotalSubmission(data.submissions || []);
+      console.log("Fetched submissions:", data.submissions);
+      setError(null);
+    } catch (err) {
+      console.error("Error fetching submissions:", err);
+      setError(err.message);
+    }
+  };
 
+  useEffect(() => {
     if (problem) {
       fetchSubmissions();
     }
@@ -169,6 +169,8 @@ const ProblemPage = () => {
           language,
         }
       );
+
+      await fetchSubmissions(); // Refresh submissions list after submission
 
       let submissionStatusMessage = "";
       if (data.accepted) {
@@ -423,7 +425,11 @@ const ProblemPage = () => {
                         {totalSubmission.map((sub, idx) => (
                           <li
                             key={idx}
-                            className="bg-base-100/40 p-3 rounded-md mb-2 flex justify-between items-center"
+                            className="bg-base-100/40 p-3 rounded-md mb-2 flex justify-between items-center cursor-pointer"
+                            onClick={() => {
+                              setLanguage(sub.language); // update editor language
+                              setCode(sub.code); // load code into editor
+                            }}
                           >
                             <span
                               className={`font-mono ${
@@ -474,7 +480,7 @@ const ProblemPage = () => {
         <Panel defaultSize={50} minSize={30}>
           {/* Right Panel: Code Editor and Output, now split vertically */}
           <PanelGroup direction="vertical">
-            <Panel defaultSize={65} minSize={20}>
+            <Panel defaultSize={70} minSize={30}>
               {" "}
               {/* Editor panel */}
               <div className="card bg-base-100/40 shadow-xl p-4 flex-grow overflow-hidden flex flex-col h-full">
@@ -517,7 +523,7 @@ const ProblemPage = () => {
                 <div className="flex-grow border border-base-300 rounded-md overflow-hidden">
                   <Editor
                     height="100%"
-                    language={language || "javascript"}
+                    language={language || "cpp"}
                     value={
                       code || `// Write your code here for ${problem.title}`
                     }

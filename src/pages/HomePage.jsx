@@ -25,6 +25,9 @@ const HomePage = () => {
   // Get user information from Redux store
   const { user } = useSelector((state) => state.auth);
 
+  const isAdmin = user?.role === "admin";
+
+
   const handleLogout = async () => {
     try {
       // Optional: If you have a backend logout endpoint to invalidate tokens
@@ -306,6 +309,20 @@ const HomePage = () => {
                   <i className="fas fa-sign-out-alt mr-2"></i> Logout
                 </a>
               </li>
+              {isAdmin && (
+                <li>
+                  <a
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      navigate("/admin");
+                    }}
+                    className="hover:bg-primary/20 rounded-md py-2 transition-colors duration-200"
+                  >
+                    <i className="fas fa-cog mr-2"></i> Admin Page
+                  </a>
+                </li>
+              )}
             </ul>
           </div>
         </div>
