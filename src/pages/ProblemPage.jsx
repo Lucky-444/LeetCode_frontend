@@ -4,6 +4,8 @@ import axiosClient from "../utils/axiosClient.js";
 import { useSelector } from "react-redux";
 import Editor from "@monaco-editor/react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 
 const ProblemPage = () => {
   const { id } = useParams(); // Get problem ID from URL
@@ -20,6 +22,8 @@ const ProblemPage = () => {
   const [activeLeftTab, setActiveLeftTab] = useState("description"); // 'description', 'solution', 'submissions'
   const editorRef = useRef(null); // This ref isn't strictly needed for Monaco in this setup, but kept for consistency
   const { user } = useSelector((state) => state.auth);
+  const [solutions, setSolution] = useState([]);
+  const [totalSubmission, setTotalSubmission] = useState([]);
 
   // New state for controlling the output panel size
   // Adjusted initial size to give more room and ensure buttons are visible
@@ -31,11 +35,14 @@ const ProblemPage = () => {
         setLoading(true);
         const { data } = await axiosClient.get(`/problem/problemById/${id}`);
         setProblem(data.problem);
+        console.log("Fetched problem data:", data.problem);
 
         const initialCodeObj = data.problem.starterCode.find(
           (item) => item.language === language
         );
         setCode(initialCodeObj?.initialCode || "// Write your code here");
+        setSolution(data.problem.referenceSolution || []);
+        setError(null);
       } catch (err) {
         console.error("Error fetching problem:", err);
         setError("Failed to load problem. Please try again.");
@@ -52,6 +59,27 @@ const ProblemPage = () => {
   const handleCodeChange = (value) => {
     setCode(value);
   };
+
+  useEffect(() => {
+    const fetchSubmissions = async () => {
+      if (!problem) return;
+      try {
+        const { data } = await axiosClient.get(
+          `/problem/submittedProblem/${problem._id}`
+        );
+        setTotalSubmission(data.submissions || []);
+        console.log("Fetched submissions:", data.submissions);
+        setError(null);
+      } catch (err) {
+        console.error("Error fetching submissions:", err);
+        setError(err.message);
+      }
+    };
+
+    if (problem) {
+      fetchSubmissions();
+    }
+  }, [problem]);
 
   const handleLanguageChange = (e) => {
     const newLanguage = e.target.value;
@@ -168,6 +196,7 @@ const ProblemPage = () => {
       setSubmissionResult(null);
     } finally {
       setIsSubmitting(false);
+      await fetchSubmissions(); // refresh submissions list
     }
   };
 
@@ -357,17 +386,27 @@ const ProblemPage = () => {
                   </p>
                   <pre className="bg-base-200/40 p-4 rounded-md overflow-x-auto mt-4 text-primary-content">
                     <code>
-                      {`function twoSum(nums, target) {
-  const map = new Map();
-  for (let i = 0; i < nums.length; i++) {
-    const complement = target - nums[i];
-    if (map.has(complement)) {
-      return [map.get(complement), i];
-    }
-    map.set(nums[i], i);
-  }
-  return [];
-}`}
+                      {solutions.length > 0
+                        ? solutions.map((sol, idx) => (
+                            <div key={idx} className="mb-4">
+                              <h3 className="text-lg font-bold mb-2">
+                                {sol.language} Solution:
+                              </h3>
+                              <SyntaxHighlighter
+                                language={sol.language.toLowerCase()}
+                                style={vscDarkPlus}
+                                customStyle={{
+                                  borderRadius: "0.5rem",
+                                  padding: "1rem",
+                                  fontSize: "0.9rem",
+                                }}
+                                showLineNumbers
+                              >
+                                {sol.completeCode}
+                              </SyntaxHighlighter>
+                            </div>
+                          ))
+                        : "// No official solutions available."}
                     </code>
                   </pre>
                 </div>
@@ -377,29 +416,51 @@ const ProblemPage = () => {
                   <h2 className="text-2xl font-semibold mb-2 text-secondary">
                     Your Submissions
                   </h2>
+
                   {user ? (
-                    <p className="text-info">
-                      Fetching your past submissions...
-                    </p>
+                    totalSubmission.length > 0 ? (
+                      <ul className="mt-4">
+                        {totalSubmission.map((sub, idx) => (
+                          <li
+                            key={idx}
+                            className="bg-base-100/40 p-3 rounded-md mb-2 flex justify-between items-center"
+                          >
+                            <span
+                              className={`font-mono ${
+                                sub.status === "accepted"
+                                  ? "text-success"
+                                  : sub.status === "wrong_answer"
+                                  ? "text-error"
+                                  : sub.status === "error"
+                                  ? "text-warning"
+                                  : "text-info"
+                              }`}
+                            >
+                              {sub.status === "accepted"
+                                ? "Accepted"
+                                : sub.status === "wrong_answer"
+                                ? "Wrong Answer"
+                                : sub.status === "error"
+                                ? "Error"
+                                : "Pending"}
+                            </span>
+                            <span className="text-sm text-base-content/70">
+                              {new Date(sub.createdAt).toLocaleString("en-IN", {
+                                timeZone: "Asia/Kolkata",
+                                hour12: true,
+                              })}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-warning">No submissions yet.</p>
+                    )
                   ) : (
                     <p className="text-warning">
                       Please log in to view your submissions.
                     </p>
                   )}
-                  <ul className="mt-4">
-                    <li className="bg-base-100/40 p-3 rounded-md mb-2 flex justify-between items-center">
-                      <span className="font-mono text-success">Accepted</span>
-                      <span className="text-sm text-base-content/70">
-                        2 days ago
-                      </span>
-                    </li>
-                    <li className="bg-base-100/40 p-3 rounded-md mb-2 flex justify-between items-center">
-                      <span className="font-mono text-error">Wrong Answer</span>
-                      <span className="text-sm text-base-content/70">
-                        3 days ago
-                      </span>
-                    </li>
-                  </ul>
                 </div>
               )}
             </div>
@@ -480,7 +541,6 @@ const ProblemPage = () => {
                       },
                       mouseWheelZoom: true,
                       cursorStyle: "line",
-                      
                     }}
                   />
                 </div>

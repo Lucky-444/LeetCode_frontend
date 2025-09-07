@@ -141,11 +141,18 @@ const SolvedProblems = () => {
       <div className="absolute inset-0 bg-black/50 z-0"></div>
 
       <div className="p-8 relative z-10 flex-grow container mx-auto">
-        <h1 className="text-5xl font-extrabold text-white mb-8 animate-fade-in-left">
+      <button
+        className="px-6 py-2 mb-4 rounded-2xl bg-blue-950/80 text-white font-medium shadow-md hover:bg-blue-900 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all duration-300"
+        onClick={() => navigate('/')}
+      >
+        Back to Dashboard
+      </button>
+
+        <h1 className="text-5xl font-extrabold text-white mb-8 animate-fade-in-left justify-center flex">
           Your <span className="text-primary-content">Solved</span> Problems 🏆
         </h1>
 
-        <div className="mt-8 p-6 bg-base-100/40 backdrop-blur-md rounded-box shadow-xl animate-fade-in-up delay-100">
+        <div className="mt-8 p-6 bg-base-1200/40 backdrop-blur-md rounded-box shadow-xl animate-fade-in-up delay-100">
           <div className="flex flex-wrap gap-4 mb-6">
             <select
               name="difficulty"

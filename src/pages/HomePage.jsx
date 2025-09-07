@@ -10,6 +10,7 @@ const HomePage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
+  const [totalProblems , setTotalProblemsCount] = useState(0);
   const [problems, setProblems] = useState([]);
   const [solvedProblems, setSolvedProblems] = useState([]);
   const [filters, setFilters] = useState({
@@ -45,6 +46,10 @@ const HomePage = () => {
       const { data } = await axiosClient.get(
         `/problem/getAllProblems?page=${page}&limit=${PROBLEMS_PER_PAGE}`
       );
+      console.log("Fetched problems:", data);
+      setTotalProblemsCount(data.totalProblems);
+      // Append new problems to existing list
+      
       setProblems((prevProblems) => [...prevProblems, ...data.problems]);
       setHasMoreProblems(data.hasMore);
       setCurrentPage(data.currentPage);
@@ -340,7 +345,7 @@ const HomePage = () => {
           <div className="card shadow-xl bg-base-100 text-base-content animate-pop-in delay-100">
             <div className="card-body">
               <h2 className="card-title text-3xl font-bold">Total Problems</h2>
-              <p className="text-6xl font-extrabold mt-4">{problems?.length}</p>
+              <p className="text-6xl font-extrabold mt-4">{totalProblems}</p>
               <div className="card-actions justify-end mt-4">
                 <button className="btn btn-primary btn-outline">Explore</button>
               </div>
